@@ -1,0 +1,11 @@
+import * as React from "react";
+import { createRoot } from "react-dom/client";
+import { HomeFolders } from "@/components/home-folders";
+import { BudgetView } from "@/components/budget-view";
+import { BalanceView } from "@/components/balance-view";
+const el = document.getElementById("carousel");
+if (el) createRoot(el).render(<HomeFolders hrefs={{ budget: "#budget", balance: "#balance", progress: "#progress" }} />);
+const b = document.getElementById("budget-root");
+if (b) createRoot(b).render(<BudgetView />);
+const bs = document.getElementById("balance-root");
+if (bs) createRoot(bs).render(<BalanceView />);
