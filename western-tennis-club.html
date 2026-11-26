@@ -179,7 +179,7 @@ section.locked .notice{animation:none}
 
 
 /* ===== Finance pages: colours and type from Holly's dashboard reference (Budget, Balance sheet) ===== */
-.fin{--fin-ink:#1F2228;--fin-muted:#8F8B80;--fin-card:#F7F4EC;--fin-line:#E6E0D2;--fin-sage:#CEDDBC;--fin-mustard:#F2DE9B;--fin-lav:#B4B1F2;--fin-lav-deep:#7470E0;--fin-cream2:#E9E3D3;
+.fin{--fin-ink:#1F2228;--fin-muted:#8F8B80;--fin-card:#F5F2EB;--fin-line:#E6E0D2;--fin-sage:#CEDDBC;--fin-mustard:#F2DE9B;--fin-lav:#B4B1F2;--fin-lav-deep:#7470E0;--fin-cream2:#E9E3D3;
   --font-body:'Poppins','Inter Tight',system-ui,sans-serif;--font-head:'Poppins','Inter Tight',system-ui,sans-serif;font-family:var(--font-body)}
 .fin h1{font-family:var(--font-head);font-weight:600;letter-spacing:-.035em;font-style:normal}
 .fin h2{font-family:var(--font-head);font-weight:600;letter-spacing:-.02em;color:var(--fin-ink)}
@@ -188,8 +188,7 @@ section.locked .notice{animation:none}
 .fin .card .small,.fin .card .nt{color:var(--fin-muted)}
 .fin .stat{font-family:var(--font-body);font-weight:600;letter-spacing:-.03em;color:var(--fin-ink)}
 .fin .stat.neg,.fin .neg{color:var(--red)}
-.fin .card.tone-cream{background:var(--fin-cream2)}.fin .card.tone-green{background:var(--fin-sage)}.fin .card.tone-yellow{background:var(--fin-mustard)}.fin .card.tone-lav{background:var(--fin-lav)}
-.fin .card.tone-lav .small{color:#3D3A86}
+.fin .card.tone-cream,.fin .card.tone-green,.fin .card.tone-yellow,.fin .card.tone-lav{background:var(--fin-card)}
 .fin table{font-family:var(--font-body)}
 .fin th{color:var(--fin-muted)}
 .fin td,.fin th{border-color:var(--fin-line)}
@@ -203,9 +202,8 @@ section.locked .notice{animation:none}
 .fin .cal-d.on{background:var(--fin-ink);color:#fff}.fin .cal-d.on.warn{background:var(--red)}
 .fin .tag.fall{background:var(--fin-sage);color:#2E4A22}.fin .tag.winter{background:#DCDBFA;color:#3D3A86}
 .fin .flag{background:var(--fin-mustard);color:#5A4712}
-.fin .card.mini{background:#fff;box-shadow:0 10px 30px rgba(10,30,70,.12)}
+.fin .card.mini{background:var(--fin-card);box-shadow:0 10px 30px rgba(10,30,70,.12)}
 .fin .yearpick select,.fin .yearbar{font-family:var(--font-body)}
-
 </style></head>
 <body><div class="wrap">
 <nav><a class="logo" href="#home"><span class="dot"></span>Western Tennis Club</a><ul><li><a href="#home" data-tab="home">Home</a></li><li><a href="#budget" data-tab="budget">Budget</a></li><li><a href="#balance" data-tab="balance">Balance sheet</a></li><li><a href="#progress" data-tab="progress">Progress</a></li><li id="logout-li" hidden><button class="logout" id="logout" type="button">Log out</button></li></ul></nav>
