@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Yearly Budget · WTC" };
 export default function Budget() {
   return (
     <ExecGate>
-      <main>
+      <main className="fin">
         <ExecNotice />
         <BudgetView />
       </main>

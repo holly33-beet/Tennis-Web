@@ -83,9 +83,9 @@ export function BalanceView() {
       <p className="lede">Projected year-end position for {year}, from the Budget page{r.sheet ? ` (“${r.sheet}” sheet)` : ""}. Add years on the Budget page.</p>
 
       <div className="grid">
-        <div className="card c4"><span className="label">Total assets</span><div className="stat">{fmt(assets)}</div></div>
-        <div className="card c4"><span className="label">Total liabilities</span><div className="stat">{fmt(liabilities)}</div></div>
-        <div className="card green c4"><span className="label">Total equity</span><div className={`stat ${equity < 0 ? "neg" : ""}`}>{fmt(equity)}</div>
+        <div className="card c4 tone-green"><span className="label">Total assets</span><div className="stat">{fmt(assets)}</div></div>
+        <div className="card c4 tone-yellow"><span className="label">Total liabilities</span><div className="stat">{fmt(liabilities)}</div></div>
+        <div className="card c4 tone-lav"><span className="label">Total equity</span><div className={`stat ${equity < 0 ? "neg" : ""}`}>{fmt(equity)}</div>
           <p className="small">{diff === 0 ? "✓ Assets = liabilities + equity" : `Off by ${fmt(diff)}`}</p></div>
       </div>
 

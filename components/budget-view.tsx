@@ -320,10 +320,10 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
   return (
     <>
       <div className="grid">
-        <div className="card c3"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div>
-        <div className="card c3"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div>
-        <div className="card c3"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div>
-        <div className="card green c3"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div>
+        <div className="card c3 tone-cream"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div>
+        <div className="card c3 tone-green"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div>
+        <div className="card c3 tone-yellow"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div>
+        <div className="card c3 tone-lav"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div>
       </div>
 
       {/* Cost calculators: four compact cards; the court calendar opens below */}

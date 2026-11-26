@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Balance Sheet · WTC" };
 export default function Balance() {
   return (
     <ExecGate>
-      <main>
+      <main className="fin">
         <ExecNotice />
         <BalanceView />
       </main>

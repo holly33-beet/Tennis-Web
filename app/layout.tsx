@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&amp;family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&amp;family=DM+Sans:wght@300..800&amp;family=DM+Serif+Display:ital@0;1&amp;family=Instrument+Serif:ital@0;1&amp;family=Inter+Tight:ital,wght@0,300..800;1,300..800&amp;family=Inter:wght@300..800&amp;family=Libre+Caslon+Display&amp;family=Manrope:wght@300..800&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&amp;family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&amp;family=DM+Sans:wght@300..800&amp;family=Poppins:wght@300;400;500;600;700&amp;family=DM+Serif+Display:ital@0;1&amp;family=Instrument+Serif:ital@0;1&amp;family=Inter+Tight:ital,wght@0,300..800;1,300..800&amp;family=Inter:wght@300..800&amp;family=Libre+Caslon+Display&amp;family=Manrope:wght@300..800&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap" />
       </head>
       <body>
         <div className="wrap">
