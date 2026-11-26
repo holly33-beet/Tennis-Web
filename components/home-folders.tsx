@@ -2,7 +2,7 @@
 import * as React from "react";
 import GlassFolder, { type ArtRecipe, type FolderFile } from "@/components/ui/glass-folder-cards";
 
-// Home: three glass folders, one per finance page. Click a folder to open it, then click a sheet to go to that page.
+// Home: three glass folders, one per finance page. Click a folder to go straight to that page.
 // Folder art uses Holly's two-tone palettes.
 export type PageKey = "budget" | "balance" | "progress";
 
@@ -31,7 +31,7 @@ export function HomeFolders({ hrefs }: { hrefs: Record<PageKey, string> }) {
     <div className="folders">
       {FOLDERS.map((f, i) => {
         const files: FolderFile[] = f.sheets.map((name) => ({ name, href: hrefs[f.key] }));
-        return <GlassFolder key={f.key} label={f.label} meta="" art={f.art} seed={f.seed} files={files} action="none" width={width} appearDelay={i * 140} />;
+        return <GlassFolder key={f.key} label={f.label} meta="" art={f.art} seed={f.seed} files={files} action="none" href={hrefs[f.key]} width={width} appearDelay={i * 140} />;
       })}
     </div>
   );

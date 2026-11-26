@@ -7,43 +7,12 @@ import { SHEETS, YEARS_KEY, DATA_KEY, type Custom, useStored, sortYears, current
 // Projected year-end position: equity = opening carryover + surplus. Cash is the balancing figure,
 // so total assets always equal total liabilities plus total equity.
 
-type Item = { id: string; name: string; amount: number };
-type BS = { assets: Item[]; liabilities: Item[] };
-const bsKey = (y: string) => `wtc-bs-v1:${y}`;
-
-function ItemList({ items, onAdd, onRemove, kind }: { items: Item[]; onAdd: (i: Item) => void; onRemove: (id: string) => void; kind: string }) {
-  const [name, setName] = React.useState("");
-  const [amt, setAmt] = React.useState("");
-  const add = () => {
-    const a = parseFloat(amt);
-    if (!name.trim() || !(a > 0)) return;
-    onAdd({ id: String(Date.now()), name: name.trim(), amount: Math.round(a * 100) / 100 });
-    setName(""); setAmt("");
-  };
-  return (
-    <>
-      {items.map((i) => (
-        <tr key={i.id}><td>{i.name}</td><td className="n">{fmt(i.amount)}</td>
-          <td className="n" style={{ width: 28 }}><button className="x" onClick={() => onRemove(i.id)} aria-label={`Remove ${i.name}`}>×</button></td></tr>
-      ))}
-      <tr><td colSpan={3}>
-        <div className="bsadd" onKeyDown={(e) => { if (e.key === "Enter") add(); }}>
-          <input className="inp" placeholder={`Add ${kind}`} value={name} onChange={(e) => setName(e.target.value)} aria-label={`${kind} name`} />
-          <input className="inp" type="number" min="0" step="0.01" placeholder="$" value={amt} onChange={(e) => setAmt(e.target.value)} aria-label={`${kind} amount`} />
-          <button className="btn sm" type="button" onClick={add}>Add</button>
-        </div>
-      </td></tr>
-    </>
-  );
-}
-
 export function BalanceView() {
   const [years] = useStored<string[]>(YEARS_KEY, []);
   const [custom] = useStored<Record<string, Custom>>(DATA_KEY, {});
   const list = sortYears([...SHEETS, ...years]);
   const [sel, setSel] = React.useState(currentYear());
   const year = list.includes(sel) ? sel : list[list.length - 1];
-  const [bs, setBs] = useStored<BS>(bsKey(year), { assets: [], liabilities: [] });
   const [tick, setTick] = React.useState(0);
   React.useEffect(() => { setTick((t) => t + 1); }, [year, years, custom]); // re-read Budget page data after it loads
   React.useEffect(() => { // pick up edits made on the Budget page (same tab or another tab)
@@ -62,8 +31,8 @@ export function BalanceView() {
   // Balls are recorded as an asset (stock of balls) instead of being spent, so their cost is added back to equity.
   // Event budget: only what was spent is an expense; the unspent part stays with the club as an asset.
   const balls = r.lines.find((l) => l.label === "Balls")?.amount ?? 0;
-  const otherAssets = bs.assets.reduce((a, i) => a + i.amount, 0) + balls + r.eventLeft;
-  const liabilities = bs.liabilities.reduce((a, i) => a + i.amount, 0);
+  const otherAssets = balls + r.eventLeft;
+  const liabilities = 0; // the club has no liabilities; everything below comes from the Budget page
   const surplus = Math.round((r.surplus + balls + r.eventLeft) * 100) / 100;
   const equity = Math.round((r.opening + surplus) * 100) / 100;
   const cash = Math.round((equity + liabilities - otherAssets) * 100) / 100; // balancing figure
@@ -93,21 +62,19 @@ export function BalanceView() {
         <div className="card c6">
           <h2>Assets</h2>
           <table><tbody>
-            <tr><th>Item</th><th className="n">Amount</th><th /></tr>
-            <tr><td>Cash (bank account)<div className="small">Balancing figure: equity + liabilities − other assets</div></td><td className={`n ${cash < 0 ? "neg" : ""}`}>{fmt(cash)}</td><td /></tr>
-            <tr><td>Balls<div className="small">Recorded as an asset at cost, not spent</div></td><td className="n">{fmt(balls)}</td><td /></tr>
-            {r.lines.some((l) => l.label === "Event budget") && <tr><td>Event budget left<div className="small">Unspent part of the event budget (from the Budget page)</div></td><td className="n">{fmt(r.eventLeft)}</td><td /></tr>}
-            <ItemList kind="asset" items={bs.assets} onAdd={(i) => setBs((b) => ({ ...b, assets: [...b.assets, i] }))} onRemove={(id) => setBs((b) => ({ ...b, assets: b.assets.filter((x) => x.id !== id) }))} />
-            <tr className="total"><td>Total assets</td><td className="n">{fmt(assets)}</td><td /></tr>
+            <tr><th>Item</th><th className="n">Amount</th></tr>
+            <tr><td>Cash (bank account)<div className="small">Balancing figure: equity + liabilities − other assets</div></td><td className={`n ${cash < 0 ? "neg" : ""}`}>{fmt(cash)}</td></tr>
+            <tr><td>Balls<div className="small">Recorded as an asset at cost, not spent</div></td><td className="n">{fmt(balls)}</td></tr>
+            {r.lines.some((l) => l.label === "Event budget") && <tr><td>Event budget left<div className="small">Unspent part of the event budget (from the Budget page)</div></td><td className="n">{fmt(r.eventLeft)}</td></tr>}
+            <tr className="total"><td>Total assets</td><td className="n">{fmt(assets)}</td></tr>
           </tbody></table>
         </div>
         <div className="card c6">
           <h2>Liabilities</h2>
           <table><tbody>
-            <tr><th>Item</th><th className="n">Amount</th><th /></tr>
-            {bs.liabilities.length === 0 && <tr><td className="small" colSpan={3}>None recorded.</td></tr>}
-            <ItemList kind="liability" items={bs.liabilities} onAdd={(i) => setBs((b) => ({ ...b, liabilities: [...b.liabilities, i] }))} onRemove={(id) => setBs((b) => ({ ...b, liabilities: b.liabilities.filter((x) => x.id !== id) }))} />
-            <tr className="total"><td>Total liabilities</td><td className="n">{fmt(liabilities)}</td><td /></tr>
+            <tr><th>Item</th><th className="n">Amount</th></tr>
+            <tr><td className="small" colSpan={2}>None. Everything on this page comes straight from the Budget page.</td></tr>
+            <tr className="total"><td>Total liabilities</td><td className="n">{fmt(liabilities)}</td></tr>
           </tbody></table>
           <h2 style={{ marginTop: 24 }}>Equity</h2>
           <table><tbody>
@@ -141,7 +108,6 @@ export function BalanceView() {
               <tr key={key} className={key === "closing" ? "total" : undefined}><td>{label}</td>{all.map((a) => <td key={a.year} className={`n ${a[key] < 0 ? "neg" : ""}`}>{fmt(a[key])}</td>)}</tr>
             ))}
           </tbody></table></div>
-          <p className="small" style={{ marginTop: 10 }}>Extra assets and liabilities you add save in this browser.</p>
         </div>
       </div>
     </>

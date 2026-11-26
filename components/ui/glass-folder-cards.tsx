@@ -93,6 +93,8 @@ export type GlassFolderProps = {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  /** If set, clicking the front panel goes straight to this link instead of opening the folder. */
+  href?: string
   /** Called when a file is chosen while the folder is open. */
   onFileSelect?: (file: FolderFile, index: number) => void
   /** Width in px. Everything else scales with it; the height is 0.96 × width. */
@@ -544,6 +546,7 @@ export default function GlassFolder({
   defaultOpen = false,
   onOpenChange,
   onFileSelect,
+  href,
   width = 340,
   appear = true,
   appearDelay = 0,
@@ -759,10 +762,14 @@ export default function GlassFolder({
               ref={hitRef}
               type="button"
               className="gf-hit"
-              aria-expanded={open}
-              aria-label={(open ? "Close " : "Open ") + label + ", " + count + (count === 1 ? " item" : " items")}
+              aria-expanded={href ? undefined : open}
+              aria-label={href ? "Go to " + label : (open ? "Close " : "Open ") + label + ", " + count + (count === 1 ? " item" : " items")}
               onClick={() => {
                 setMenuOpen(false)
+                if (href) {
+                  window.location.href = href
+                  return
+                }
                 setOpen(!open)
               }}
             />
