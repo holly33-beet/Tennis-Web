@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { SHEET_YEARS, fmt, longDate } from "@/lib/budget";
+import { StatTile, Bars, Donut, PALETTE } from "@/components/dash";
 
 // Budget page with a year picker. 2025–26 and 2026–27 come from their tabs of the budget sheet (read-only copies).
 // Any other year is added here and its figures are typed in on the page.
@@ -310,25 +311,52 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
   };
   const remove = (id: string) => setStore((s) => ({ ...s, events: s.events.filter((x) => x.id !== id) }));
 
-  const Line = ({ label, note, amount, flag, edit }: { label: string; note?: string; amount: number; flag?: string; edit?: (n: number) => void }) => (
-    <tr><td>{label}{note && <div className="small">{note}</div>}{flag && <span className="flag">{flag}</span>}</td>
-      <td className="n">{edit ? <Num value={amount} onChange={(n) => edit(r2(n))} label={label} step="0.01" width={120} /> : fmt(amount)}</td></tr>
-  );
   const eventNote = t.spent > store.start ? `Over budget: ${fmt(t.spent)} spent` : `${fmt(t.spent)} spent, ${fmt(remaining)} left`;
   const others = sh ? sh.expenses.filter((e) => !CALC_NAMES.includes(e.name)) : [];
 
-  return (
-    <>
-      <div className="grid">
-        <div className="card c3"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div>
-        <div className="card c3"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div>
-        <div className="card c3"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div>
-        <div className="card green c3"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div>
-      </div>
+  const monthly = seasonMonths(y0).map(({ y, m }) => {
+    const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+    const ds = calc.dates.filter((d) => d.startsWith(key));
+    return { label: MONTHS[m], value: r2(ds.reduce((a, d) => a + calc.courts[wd(d)] * calc.hours[wd(d)] * calc.rate, 0)), note: `${ds.length} sessions` };
+  });
+  const otherTotal = others.reduce((a, e) => a + e.amount, 0);
+  const donut = [
+    { label: "Court fees", value: k.court, color: PALETTE[0] },
+    { label: "UTC memberships", value: k.utc, color: PALETTE[1] },
+    { label: "Administrative fee", value: k.admin, color: PALETTE[2] },
+    { label: "Balls", value: k.balls, color: PALETTE[3] },
+    { label: "Event budget", value: hasEvents ? t.eventCost : 0, color: PALETTE[4] },
+    { label: "Other", value: otherTotal, color: PALETTE[5] },
+  ];
+  const Row = ({ ic, color, name, note, amount, flag, edit }: { ic: string; color: string; name: string; note?: string; amount: number; flag?: string; edit?: (n: number) => void }) => (
+    <div className="row"><span className="ic" style={{ background: color }}>{ic}</span>
+      <div><div className="nm">{name}</div>{note && <div className="nt">{note}</div>}{flag && <span className="flag">{flag}</span>}</div>
+      <div className="am">{edit ? <Num value={amount} onChange={(n) => edit(r2(n))} label={name} step="0.01" width={120} /> : fmt(amount)}</div></div>
+  );
 
-      {/* Cost calculators: four compact cards; the court calendar opens below */}
-      <div className="grid">
-        <div className="card c3 mini">
+  return (
+    <div className="dash">
+      <div className="dash-main">
+        <div className="tiles">
+          <StatTile tone="cream" label="Total cost" value={t.cost} spark={monthly.map((x) => x.value)} sub="Court fees by month" />
+          <StatTile tone="blue" label="Total revenue" value={t.revenue} sub={sh?.revenueNote || "Typed in below"} />
+          <StatTile tone="yellow" label="Carryover" value={t.carryover} sub="From last year" />
+          <StatTile tone="green" label="Surplus or deficit" value={t.surplus} neg={t.surplus < 0} pill={t.revenue ? `${t.surplus >= 0 ? "+" : ""}${((t.surplus / t.revenue) * 100).toFixed(1)}%` : undefined} sub={`Carryover to next year: ${fmt(ending)}`} />
+        </div>
+
+        <section>
+          <div className="dash-sec-head">
+            <div><h3>Court fees by month</h3><div className="dash-big">{fmt(k.court)}</div></div>
+            <span className="sub">{calc.dates.length} sessions · {weekHours} court-hours a week{k.extras.length > 0 && ` · plus ${fmt(k.extras.reduce((a, e) => a + e.amount, 0))} extra bookings`}</span>
+          </div>
+          <Bars data={monthly} />
+        </section>
+
+        <section>
+          <div className="dash-sec-head"><div><h3>Cost calculators</h3><div className="sub">Change the numbers and every total updates.</div></div>
+            <button className="linkbtn" style={{ marginTop: 0 }} onClick={resetCalc}>{sh ? "Reset to sheet numbers" : "Clear calculators"}</button></div>
+          <div className="calcs">
+        <div className="card mini">
           <span className="label">Court fees</span>
           <div className="stat">{fmt(k.court)}</div>
           <p className="small">{calc.dates.length} sessions · {weekHours} court-hours a week{k.extras.length > 0 && ` · plus ${fmt(k.extras.reduce((a, e) => a + e.amount, 0))} extra bookings`}</p>
@@ -337,7 +365,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
           </div>
           <button className="linkbtn" onClick={() => setCourtOpen((o) => !o)} aria-expanded={courtOpen}>{courtOpen ? "Hide sessions ▴" : "Edit days and sessions ▾"}</button>
         </div>
-        <div className="card c3 mini">
+        <div className="card mini">
           <span className="label">Balls</span>
           <div className="stat">{fmt(k.balls)}</div>
           <p className="small">{k.ballsEntered ? `${calc.balls.qty} boxes × ${fmt(calc.balls.price)}` : sh ? "Sheet amount. Enter boxes and price to work it out." : "Enter boxes and price."}</p>
@@ -346,7 +374,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
             <Field label="Price per box"><Num value={calc.balls.price} onChange={(n) => upd({ balls: { ...calc.balls, price: n } })} label="Price per box" step="0.01" prefix="$" /></Field>
           </div>
         </div>
-        <div className="card c3 mini">
+        <div className="card mini">
           <span className="label">Administrative fee</span>
           <div className="stat">{fmt(k.admin)}</div>
           <p className="small">{calc.admin.fullN} × {fmt(calc.admin.fullFee)} + {calc.admin.winterN} × {fmt(calc.admin.winterFee)}</p>
@@ -358,7 +386,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
           </div>
           {sheetAdmin !== undefined && Math.abs(sheetAdmin - k.admin) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetAdmin)}.</p>}
         </div>
-        <div className="card c3 mini">
+        <div className="card mini">
           <span className="label">UTC membership</span>
           <div className="stat">{fmt(k.utc)}</div>
           <p className="small">{calc.utc.n} × {fmt(calc.utc.fee)}</p>
@@ -368,10 +396,9 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
           </div>
           {sheetUtc !== undefined && Math.abs(sheetUtc - k.utc) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetUtc)}.</p>}
         </div>
-      </div>
-      {courtOpen && (
-        <div className="grid">
-          <div className="card c12">
+          </div>
+          {courtOpen && (
+            <div className="courtpanel" style={{ marginTop: 12 }}>
           <div className="courtcalc">
             <div>
               <div className="scroll"><table className="daytbl"><tbody>
@@ -402,66 +429,71 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
             </div>
             <Calendar y0={y0} dates={dateSet} courts={calc.courts} setDay={setDay} />
           </div>
-          </div>
-        </div>
-      )}
-      <div className="calcfoot"><span className="small">Calculator inputs save in this browser.</span> <button className="linkbtn" style={{ marginTop: 0 }} onClick={resetCalc}>{sh ? "Reset to sheet numbers" : "Clear calculators"}</button></div>
+            </div>
+          )}
+        </section>
 
-      <div className="grid">
-        <div className={`card ${hasEvents ? "c7" : "c12"}`}>
-          <h2>Budget breakdown</h2>
-          {sh && <p className="small" style={{ margin: "-4px 0 8px" }}>From the “{sh.source}” sheet, with the calculators above.</p>}
-          <div className="scroll"><table><tbody>
-            <tr><th>Part</th><th className="n">Amount</th></tr>
-            {k.perDay.map((d, i) => d.n > 0 && <Line key={i} label={`Court fees: ${WEEKDAYS[i]}s`} note={`${d.n} sessions × ${fmt(d.each)}`} amount={d.total} />)}
-            {k.extras.map((e) => <Line key={e.name} label={`Court fees: ${e.name}`} note={e.note} amount={e.amount} />)}
-            <Line label="Balls" amount={k.balls} />
-            <Line label="Administrative fee" amount={k.admin} />
-            <Line label="UTC memberships" amount={k.utc} />
-            {others.map((e) => <Line key={e.name} label={e.name} note={e.note || undefined} amount={e.amount} flag={e.flag} />)}
-            {hasEvents && <Line label="Event budget" note={eventNote} amount={t.eventCost} />}
-            <tr className="total"><td>Total cost</td><td className="n">{fmt(t.cost)}</td></tr>
+        <section>
+          <div className="dash-sec-head"><div><h3>Budget breakdown</h3><div className="sub">{sh ? `From the “${sh.source}” sheet, with the calculators above.` : "Type in this year’s revenue and carryover."}</div></div></div>
+          <div className="rows">
+            {k.perDay.map((d, i) => d.n > 0 && <Row key={i} ic={WEEKDAYS[i].slice(0, 2)} color={PALETTE[0]} name={`Court fees: ${WEEKDAYS[i]}s`} note={`${d.n} sessions × ${fmt(d.each)}`} amount={d.total} />)}
+            {k.extras.map((e) => <Row key={e.name} ic="+" color={PALETTE[0]} name={`Court fees: ${e.name}`} note={e.note} amount={e.amount} />)}
+            <Row ic="Ba" color={PALETTE[3]} name="Balls" amount={k.balls} />
+            <Row ic="Ad" color={PALETTE[2]} name="Administrative fee" amount={k.admin} />
+            <Row ic="UT" color={PALETTE[1]} name="UTC memberships" amount={k.utc} />
+            {others.map((e) => <Row key={e.name} ic="Ot" color={PALETTE[5]} name={e.name} note={e.note || undefined} amount={e.amount} flag={e.flag} />)}
+            {hasEvents && <Row ic="Ev" color={PALETTE[4]} name="Event budget" note={eventNote} amount={t.eventCost} />}
+            <div className="row total"><span /><div className="nm">Total cost</div><div className="am">{fmt(t.cost)}</div></div>
             {sh ? (
               <>
-                <tr><td>Total revenue<div className="small">{sh.revenueNote}</div></td><td className="n">{fmt(sh.revenue)}</td></tr>
-                <tr><td>Carryover from last year{sh.carryoverFlag && <span className="flag">{sh.carryoverFlag}</span>}</td><td className="n">{fmt(sh.carryover)}</td></tr>
+                <Row ic="Re" color="#1F2A37" name="Total revenue" note={sh.revenueNote} amount={sh.revenue} />
+                <Row ic="Ca" color="#1F2A37" name="Carryover from last year" amount={sh.carryover} flag={sh.carryoverFlag} />
               </>
             ) : (
               <>
-                <Line label="Total revenue" note="Membership fees and anything else coming in" amount={c.revenue} edit={(n) => setC({ revenue: n })} />
-                <Line label="Carryover from last year" note="Filled from last year’s ending figure when the year was added" amount={c.carryover} edit={(n) => setC({ carryover: n })} />
+                <Row ic="Re" color="#1F2A37" name="Total revenue" note="Membership fees and anything else coming in" amount={c.revenue} edit={(n) => setC({ revenue: n })} />
+                <Row ic="Ca" color="#1F2A37" name="Carryover from last year" note="Filled from last year’s ending figure when the year was added" amount={c.carryover} edit={(n) => setC({ carryover: n })} />
               </>
             )}
-          </tbody></table></div>
-        </div>
-
-        {hasEvents && <div className="card c5">
-          <span className="label">Event budget</span>
-          <div className={`stat ${remaining < 0 ? "neg" : ""}`}>{fmt(remaining)}</div>
-          <p className="small">left of {fmt(store.start)}</p>
-          <div className="bar"><i style={{ width: `${pct}%`, background: remaining < 0 ? "var(--red)" : undefined }} /></div>
-          <label className="small" style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 14px" }}>
-            Starting budget $
-            <input className="inp" type="number" min="0" step="1" value={store.start} onChange={(e) => setStore((s) => ({ ...s, start: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 110 }} />
-          </label>
-          <div className="evform" onKeyDown={(e) => { if (e.key === "Enter") addEvent(); }}>
-            <input className="inp" placeholder="Event name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Event name" />
-            <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Event date" />
-            <input className="inp" type="number" min="0" step="0.01" placeholder="Cost $" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Event cost" />
-            <button className="btn" type="button" onClick={addEvent}>Add event</button>
           </div>
-          {store.events.length === 0 ? <p className="small" style={{ marginTop: 12 }}>No events yet. Each event you add comes off the event budget.</p> : (
-            <table style={{ marginTop: 12 }}><tbody>
-              {store.events.map((e) => (
-                <tr key={e.id}><td>{e.name}{e.date && <div className="small">{longDate(e.date)}</div>}{e.note && <div className="small">{e.note}</div>}</td><td className="n">−{fmt(e.amount)}</td>
-                  <td className="n" style={{ width: 28 }}><button className="x" onClick={() => remove(e.id)} aria-label={`Remove ${e.name}`}>×</button></td></tr>
-              ))}
-            </tbody></table>
-          )}
-          <p className="small" style={{ marginTop: 10 }}>Saved in this browser only.</p>
-        </div>}
+        </section>
       </div>
-    </>
+
+      <aside className="dash-side">
+        <div className="side-top">
+          <h3>Where the money goes</h3>
+          <div className="sub">Share of total cost</div>
+          <Donut items={donut} centerLabel="Total" centerValue={t.cost} />
+        </div>
+        {hasEvents ? (
+          <div className="side-body">
+            <div className="dash-sec-head" style={{ marginBottom: 0 }}><div><h3>Event budget</h3><div className="sub">{fmt(remaining)} left of {fmt(store.start)}</div></div>
+              <span className={`dash-big ${remaining < 0 ? "neg" : ""}`} style={{ fontSize: 20, marginTop: 0 }}>{fmt(remaining)}</span></div>
+            <div className="bar"><i style={{ width: `${pct}%`, background: remaining < 0 ? "var(--red)" : undefined }} /></div>
+            <label className="evstart">Starting budget $
+              <input className="inp" type="number" min="0" step="1" value={store.start} onChange={(e) => setStore((s) => ({ ...s, start: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 100 }} />
+            </label>
+            <div className="evform" onKeyDown={(e) => { if (e.key === "Enter") addEvent(); }}>
+              <input className="inp" placeholder="Event name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Event name" />
+              <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Event date" />
+              <input className="inp" type="number" min="0" step="0.01" placeholder="Cost $" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Event cost" />
+              <button className="btn" type="button" onClick={addEvent}>Add event</button>
+            </div>
+            {store.events.length === 0 ? <p className="small">No events yet. Each event you add comes off the event budget.</p> :
+              store.events.map((e) => (
+                <div className="side-card" key={e.id}>
+                  <div><div className="nm">{e.name}</div>{(e.date || e.note) && <div className="nt">{[e.date && longDate(e.date), e.note].filter(Boolean).join(" · ")}</div>}</div>
+                  <span className="am">−{fmt(e.amount)}</span>
+                  <button className="x" onClick={() => remove(e.id)} aria-label={`Remove ${e.name}`}>×</button>
+                </div>
+              ))}
+            <p className="small">Saved in this browser only.</p>
+          </div>
+        ) : (
+          <div className="side-body"><h3>Event budget</h3><p className="small">The {sh?.source} sheet has no event budget line. Its tournament costs are in the breakdown.</p></div>
+        )}
+      </aside>
+    </div>
   );
 }
 

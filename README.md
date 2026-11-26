@@ -15,6 +15,7 @@ Two versions of the same site:
 - `lib/budget.ts`: budget numbers for 2025–26 and 2026–27, copied from the club budget sheet on 2026-11-26.
 - `components/budget-view.tsx`: Budget page (year picker, cost calculators, court calendar, event budget).
 - `components/balance-view.tsx`: Balance sheet (assets = liabilities + equity, cash is the balancing figure).
+- `components/dash.tsx`: dashboard pieces (stat tiles, bar chart, donut) used by Budget and Balance sheet.
 - `components/exec-gate.tsx`: exec passcode gate. Client-side only, so it is not real security.
 - `components/home-folders.tsx`, `components/ui/glass-folder-cards.tsx`: home page folders.
 - `public/ripple.js`: water ripple effect. `public/type-editor.js`: the "Aa" site editor.
