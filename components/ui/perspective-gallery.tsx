@@ -14,6 +14,9 @@ export function PerspectiveGallery({
   start,
   cardWidth = 280,
   followPointer = false,
+  minCardHeight = 0,
+  extraHeight = 0,
+  onCardHeight,
   className,
 }: {
   items: GalleryItem[];
@@ -21,8 +24,14 @@ export function PerspectiveGallery({
   start?: number;
   /** Largest card width in px; shrinks to fit narrow screens. */
   cardWidth?: number;
-  /** Move the active card with the mouse position (only for cards with nothing to type into). */
+  /** Move the active card with the mouse position. Paused while the mouse is over the front card, so its inputs stay put. */
   followPointer?: boolean;
+  /** Smallest card height in px (to match another gallery). All cards in the strip share one height. */
+  minCardHeight?: number;
+  /** Extra px added on top of the tallest card's own height. */
+  extraHeight?: number;
+  /** Reports the shared card height, so another gallery can match it. */
+  onCardHeight?: (h: number) => void;
   className?: string;
 }) {
   const n = items.length;
@@ -42,17 +51,29 @@ export function PerspectiveGallery({
     inner.current.forEach((el, i) => { if (el) el.toggleAttribute("inert", i !== active); });
   }, [active, n]);
 
-  // Stage height follows the front card, so a tall card elsewhere in the strip doesn't leave a gap.
+  // Every card in the strip gets the height of the tallest one, and the stage matches it.
+  const onH = React.useRef(onCardHeight);
+  onH.current = onCardHeight;
   React.useEffect(() => {
+    let busy = false;
     const fit = () => {
-      const h = inner.current[active]?.offsetHeight ?? 0;
-      if (stage.current) stage.current.style.height = h + "px";
+      if (busy) return;
+      busy = true;
+      const boxes = inner.current.map((el) => el?.firstElementChild as HTMLElement | null);
+      boxes.forEach((b) => { if (b) b.style.minHeight = ""; });
+      // A card marked data-grow (e.g. an expanded list) may get taller without stretching the rest.
+      const natural = Math.max(0, ...boxes.map((b) => (b && !b.hasAttribute("data-grow") ? b.offsetHeight : 0)));
+      const h = Math.max(natural + extraHeight, minCardHeight);
+      boxes.forEach((b) => { if (b) b.style.minHeight = h + "px"; });
+      if (stage.current) stage.current.style.height = Math.max(h, boxes[active]?.offsetHeight ?? 0) + "px";
+      onH.current?.(h);
+      requestAnimationFrame(() => { busy = false; });
     };
     fit();
     const ro = new ResizeObserver(fit);
-    inner.current.forEach((el) => el && ro.observe(el));
+    inner.current.forEach((el) => el?.firstElementChild && ro.observe(el.firstElementChild));
     return () => ro.disconnect();
-  }, [n, active]);
+  }, [n, minCardHeight, extraHeight, active]);
 
   React.useEffect(() => {
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -100,8 +121,10 @@ export function PerspectiveGallery({
         tabIndex={-1}
         onPointerMove={followPointer ? (e) => {
           if (e.pointerType !== "mouse") return;
+          if ((e.target as HTMLElement).closest(".pg-card.is-active")) return; // over the front card: hold still
           const r = e.currentTarget.getBoundingClientRect();
-          setActive(clamp(Math.round(((e.clientX - r.left) / r.width) * (n - 1))));
+          const t = ((e.clientX - r.left) / r.width - 0.15) / 0.7; // the middle 70% of the strip spans every card
+          setActive(clamp(Math.round(t * (n - 1))));
         } : undefined}
       >
         {items.map((it, i) => (

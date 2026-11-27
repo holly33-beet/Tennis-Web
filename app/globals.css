@@ -235,7 +235,7 @@ details[open] .su-chev{transform:rotate(180deg)}
 .pg-card.is-active{cursor:auto}
 .pg-card:not(.is-active) .pg-inner{pointer-events:none}
 .pg-inner>.card{margin:0;box-shadow:0 18px 50px rgba(10,30,70,.28)}
-.pg-stats .card{min-height:150px}
+
 .pg-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:16px;color:#fff}
 .pg-nav button{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;transition:background .2s,transform .1s,opacity .2s}
 .pg-nav button:hover{background:rgba(255,255,255,.25)}.pg-nav button:active{transform:scale(.9)}
@@ -246,3 +246,17 @@ details[open] .su-chev{transform:rotate(180deg)}
 .pg-pick{position:absolute;inset:0;z-index:2;border:0;background:transparent;cursor:pointer;padding:0;border-radius:26px}
 .pg-stage{pointer-events:none}.pg-card{pointer-events:auto}
 .pg{overflow:visible;overflow-x:clip}.pg-stage{transition:height .45s cubic-bezier(.2,.8,.2,1)}.pg-nav{position:relative;z-index:200}
+/* Gallery cards: frosted glass in the Budget folder's blues (沧溟蓝 / 玉釉杏) */
+.fin .pg .card{position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.9);color:var(--fin-ink);
+  background:radial-gradient(110% 70% at 0% 0%,rgba(14,97,172,.38),rgba(157,187,216,.28) 30%,transparent 58%),
+    radial-gradient(90% 60% at 100% 100%,rgba(157,187,216,.5),transparent 55%),
+    radial-gradient(70% 50% at 100% 0%,rgba(250,242,224,.9),transparent 60%),
+    linear-gradient(180deg,#FBFAF6 0%,#F3F6FA 100%);
+  box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px rgba(14,97,172,.08),0 18px 50px rgba(10,40,90,.28)}
+.fin .pg .card::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
+  background:linear-gradient(110deg,#0A4A85 0%,#0E61AC 22%,#9DBBD8 45%,#FAF2E0 58%,#9DBBD8 72%,#0E61AC 100%);opacity:.85}
+.fin .pg .card .inp{background:rgba(255,255,255,.85);border-color:rgba(14,97,172,.18)}
+.fin .pg .card .inp:disabled{background:rgba(222,230,240,.7)}
+.fin .pg .card .label{color:#0A3D6E}
+.fin .pg .card .bar{background:rgba(14,97,172,.14)}.fin .pg .card .bar i{background:#0E61AC}
+.fin .pg .card .linkbtn{color:#0A3D6E}
