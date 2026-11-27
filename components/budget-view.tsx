@@ -275,7 +275,6 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
   const memRev = r2(mem.n * mem.price);
   const [courtOpen, setCourtOpen] = React.useState(false);
   const [evOpen, setEvOpen] = React.useState(false);
-  const [cardH, setCardH] = React.useState(0); // the calculator cards' height; the totals row matches it
   // Lock on the session dates so a stray click on the calendar can't change them. Unlocking takes two clicks.
   const [locked, setLocked] = useStored<boolean>(`wtc-courtlock-v1:${year}`, false);
   const [unlockAsk, setUnlockAsk] = React.useState(false);
@@ -336,7 +335,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
 
   return (
     <>
-      <PerspectiveGallery label="Budget totals" className="pg-stats" cardWidth={300} start={1} followPointer minCardHeight={cardH} items={[
+      <PerspectiveGallery label="Budget totals" className="pg-stats" cardWidth={300} start={1} followPointer minCardHeight={150} items={[
           { key: "s0", label: "Total cost", node: <div className="card tone-cream"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div> },
           { key: "s1", label: "Total revenue", node: <div className="card tone-green"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div> },
           { key: "s2", label: "Carryover", node: <div className="card tone-yellow"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div> },
@@ -344,7 +343,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
       ]} />
 
       {/* Membership revenue and the cost calculators; the court calendar opens below */}
-      <PerspectiveGallery label="Budget calculators" className="pg-calc" cardWidth={300} start={1} followPointer extraHeight={24} onCardHeight={setCardH} items={[
+      <PerspectiveGallery label="Budget calculators" className="pg-calc" cardWidth={300} start={1} followPointer extraHeight={24} items={[
           { key: "c0", label: "Membership revenue", node: (
             <div className="card mini">
               <span className="label">Membership revenue</span>
