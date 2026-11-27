@@ -23,6 +23,10 @@ export const SHEETS = Object.keys(SHEET_YEARS);
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const blank = (carryover = 0): Custom => ({ revenue: 0, carryover });
 const calcKey = (y: string) => `wtc-calc-v1:${y}`;
+// Membership revenue calculator (members × WTC membership price). Shown on its own; not yet part of Total revenue.
+type MemRev = { n: number; price: number };
+const memKey = (y: string) => `wtc-memrev-v1:${y}`;
+const defaultMem = (y: string): MemRev => y === "2026–27" ? { n: 101, price: 295 } : y === "2025–26" ? { n: 75, price: 299 } : { n: 0, price: 0 };
 export const CALC_NAMES = ["Balls", "Administrative fee", "UTC memberships"];
 const wd = (iso: string) => new Date(iso + "T12:00:00").getDay();
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -262,6 +266,8 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
     if (fresh.length) setStore((s) => ({ ...s, events: [...s.events, ...fresh.filter((x) => !s.events.some((e) => e.id === x.id))] }));
   }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
   const [calc, setCalc] = useStored<Calc>(calcKey(year), defaultCalc(year));
+  const [mem, setMem] = useStored<MemRev>(memKey(year), defaultMem(year));
+  const memRev = r2(mem.n * mem.price);
   const [courtOpen, setCourtOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [date, setDate] = React.useState("");
@@ -300,7 +306,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
   const hidden = WEEKDAYS.map((n, i) => ({ n, i })).filter(({ i }) => !rows.includes(i));
   const sheetAdmin = sh?.expenses.find((e) => e.name === "Administrative fee")?.amount;
   const sheetUtc = sh?.expenses.find((e) => e.name === "UTC memberships")?.amount;
-  const resetCalc = () => { try { localStorage.removeItem(calcKey(year)); } catch {} setCalc(defaultCalc(year)); setExtraDay([]); };
+  const resetCalc = () => { try { localStorage.removeItem(calcKey(year)); localStorage.removeItem(memKey(year)); } catch {} setCalc(defaultCalc(year)); setMem(defaultMem(year)); setExtraDay([]); };
 
   const addEvent = () => {
     const amt = parseFloat(amount);
@@ -324,6 +330,19 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
         <div className="card c3 tone-green"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div>
         <div className="card c3 tone-yellow"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div>
         <div className="card c3 tone-lav"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div>
+      </div>
+
+      {/* Revenue side */}
+      <div className="grid">
+        <div className="card c3 mini">
+          <span className="label">Membership revenue</span>
+          <div className="stat">{fmt(memRev)}</div>
+          <p className="small">{mem.n} × {fmt(mem.price)} · not counted in Total revenue yet</p>
+          <div className="fields">
+            <Field label="Member number"><Num value={mem.n} onChange={(n) => setMem((m) => ({ ...m, n: Math.round(n) }))} label="Member number" /></Field>
+            <Field label="WTC membership price"><Num value={mem.price} onChange={(n) => setMem((m) => ({ ...m, price: n }))} label="WTC membership price" step="0.01" prefix="$" /></Field>
+          </div>
+        </div>
       </div>
 
       {/* Cost calculators: four compact cards; the court calendar opens below */}
