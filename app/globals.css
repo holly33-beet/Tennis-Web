@@ -247,16 +247,18 @@ details[open] .su-chev{transform:rotate(180deg)}
 .pg-stage{pointer-events:none}.pg-card{pointer-events:auto}
 .pg{overflow:visible;overflow-x:clip}.pg-stage{transition:height .45s cubic-bezier(.2,.8,.2,1)}.pg-nav{position:relative;z-index:200}
 /* Gallery cards: frosted glass in the Budget folder's blues (沧溟蓝 / 玉釉杏) */
-.fin .pg .card{position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.9);color:var(--fin-ink);
+:is(.fin .pg,.su-gal) .card{position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.9);color:var(--fin-ink);
   background:radial-gradient(110% 70% at 0% 0%,rgba(14,97,172,.38),rgba(157,187,216,.28) 30%,transparent 58%),
     radial-gradient(90% 60% at 100% 100%,rgba(157,187,216,.5),transparent 55%),
     radial-gradient(70% 50% at 100% 0%,rgba(250,242,224,.9),transparent 60%),
     linear-gradient(180deg,#FBFAF6 0%,#F3F6FA 100%);
   box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px rgba(14,97,172,.08),0 18px 50px rgba(10,40,90,.28)}
-.fin .pg .card::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
+:is(.fin .pg,.su-gal) .card::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
   background:linear-gradient(110deg,#0A4A85 0%,#0E61AC 22%,#9DBBD8 45%,#FAF2E0 58%,#9DBBD8 72%,#0E61AC 100%);opacity:.85}
-.fin .pg .card .inp{background:rgba(255,255,255,.85);border-color:rgba(14,97,172,.18)}
-.fin .pg .card .inp:disabled{background:rgba(222,230,240,.7)}
-.fin .pg .card .label{color:#0A3D6E}
-.fin .pg .card .bar{background:rgba(14,97,172,.14)}.fin .pg .card .bar i{background:#0E61AC}
-.fin .pg .card .linkbtn{color:#0A3D6E}
+:is(.fin .pg,.su-gal) .card .inp{background:rgba(255,255,255,.85);border-color:rgba(14,97,172,.18)}
+:is(.fin .pg,.su-gal) .card .inp:disabled{background:rgba(222,230,240,.7)}
+:is(.fin .pg,.su-gal) .card .label{color:#0A3D6E}
+:is(.fin .pg,.su-gal) .card .bar{background:rgba(14,97,172,.14)}:is(.fin .pg,.su-gal) .card .bar i{background:#0E61AC}
+:is(.fin .pg,.su-gal) .card .linkbtn{color:#0A3D6E}
+.pg-square .pg-inner>.card,.su-gal .pg-inner>.card{aspect-ratio:1/1;margin:0}
+.su-gal .card{color:#1F2228}.su-gal .su-top{padding:24px}.su-gal .su-top .stat{font-size:44px;margin-top:8px}

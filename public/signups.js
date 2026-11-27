@@ -155,12 +155,17 @@
       '<button class="btn sm ghost" type="button" data-su="reload">' + (state.loading ? "Refreshing…" : "Refresh") + "</button>" +
       '<button class="btn sm ghost" type="button" data-su="collapse">Collapse all</button>' +
       (isScript(cfg.url) ? '<button class="btn sm ghost" type="button" data-su="forget">Forget key</button>' : "") + "</div>";
-    h += '<div class="grid">' +
-      '<div class="card c4 su-top"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
-      '<div class="card c4 su-top"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
-      '<div class="card c4 su-top' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
-      (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
-      "</div></div>";
+    // Summary cards in the 3D perspective gallery, square, same look as the Budget and Balance sheet pages (Holly, 2026-11-27).
+    var tops = [
+      ["People signed up", '<div class="card su-top"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>"],
+      ["Spots booked", '<div class="card su-top"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>"],
+      ["Over the " + LIMIT + "-hour limit", '<div class="card su-top"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat"' + (s.over.length ? ' style="color:#D2452F"' : "") + ">" + s.over.length + "</div>" +
+        (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') + "</div>"]
+    ];
+    h += '<section class="pg pg-square su-gal" aria-roledescription="carousel" aria-label="Sign-up totals" data-pg-active="1"><div class="pg-stage">' +
+      tops.map(function (t, i) { return '<div class="pg-card" data-i="' + i + '"><div class="pg-inner">' + t[1] + '</div><button type="button" class="pg-pick" tabindex="-1" aria-label="Show ' + esc(t[0]) + '" title="' + esc(t[0]) + '" data-pg="' + i + '"></button></div>'; }).join("") +
+      '</div><div class="pg-nav"><button type="button" aria-label="Previous" data-pg="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>' +
+      '<p aria-live="polite"></p><button type="button" aria-label="Next" data-pg="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></div></section>';
     var ticks = getTicks(), wk = String(w.title).trim().toLowerCase();
     // One card per day; each session that day is a section inside it (Holly, 2026-11-27).
     var days = [], byDay = {};
@@ -193,7 +198,7 @@
         }).join("") + "</div></details>";
     }).join("") + "</div>";
     h += '<p class="small su-foot">Live from “' + esc(String(w.title).trim()) + '”. Names only; emails are never shown. Edits made in the sheet show up here on the next refresh.</p>';
-    el.innerHTML = h;
+    el.innerHTML = h; pgInit(el.querySelector(".su-gal"), tops.map(function (t) { return t[0]; }));
   }
 
   function askKey(el, state, msg) { state.needKey = true; state.keyError = msg || ""; state.loading = false; render(el, state); }
@@ -226,6 +231,44 @@
       if (e && e.badKey) { state.weeks = null; askKey(el, state, e.message); return; }
       state.error = (e && e.message) || "Network error.";
     }).then(function () { if (!state.needKey) { state.loading = false; render(el, state); } });
+  }
+
+  // Vanilla copy of components/ui/perspective-gallery.tsx for this page (cards in 3D; front card flat, others turn away).
+  function pgInit(sec, labels) {
+    if (!sec) return;
+    var cards = [].slice.call(sec.querySelectorAll(".pg-card")), stage = sec.querySelector(".pg-stage"), n = cards.length;
+    var navP = sec.querySelector(".pg-nav p"), prev = sec.querySelector('[data-pg="prev"]'), next = sec.querySelector('[data-pg="next"]');
+    var active = Math.min(n - 1, +sec.getAttribute("data-pg-active") || 0), pos = active, raf = 0;
+    function draw() {
+      var w = Math.min(260, stage.clientWidth * 0.8);
+      pos += (active - pos) * 0.1; if (Math.abs(active - pos) < 0.001) pos = active;
+      stage.style.height = w + "px";
+      cards.forEach(function (el, i) {
+        var d = i - pos, a = Math.min(Math.abs(d), 3);
+        el.style.width = w + "px"; el.style.marginLeft = -w / 2 + "px";
+        el.style.transform = "translate3d(" + d * w * 0.74 + "px,0," + -a * 110 + "px) rotateY(" + Math.max(-1, Math.min(1, -d)) * Math.min(a, 1.4) * 38 + "deg) scale(" + (1 - a * 0.04) + ")";
+        el.style.opacity = String(1 - Math.min(a / 3.4, 0.85)); el.style.zIndex = String(100 - Math.round(a * 10));
+      });
+      raf = pos === active ? 0 : requestAnimationFrame(draw);
+    }
+    function set(i) {
+      active = Math.max(0, Math.min(n - 1, i));
+      cards.forEach(function (el, k) { el.classList.toggle("is-active", k === active); var p = el.querySelector(".pg-pick"); if (p) p.hidden = k === active; });
+      navP.innerHTML = "<span>" + esc(labels[active]) + "</span> " + (active + 1) + " / " + n;
+      prev.disabled = active === 0; next.disabled = active === n - 1;
+      if (!raf) raf = requestAnimationFrame(draw);
+    }
+    sec.addEventListener("click", function (e) {
+      var t = e.target.closest ? e.target.closest("[data-pg]") : null; if (!t) return;
+      var v = t.getAttribute("data-pg"); set(v === "prev" ? active - 1 : v === "next" ? active + 1 : +v);
+    });
+    stage.addEventListener("pointermove", function (e) {
+      if (e.pointerType !== "mouse" || (e.target.closest && e.target.closest(".pg-card.is-active"))) return;
+      var r = stage.getBoundingClientRect(), t = ((e.clientX - r.left) / r.width - 0.15) / 0.7;
+      var i = Math.max(0, Math.min(n - 1, Math.round(t * (n - 1)))); if (i !== active) set(i);
+    });
+    window.addEventListener("resize", function () { if (!raf) raf = requestAnimationFrame(draw); });
+    pos = active; set(active); draw();
   }
 
   function mount(el, cfg) {

@@ -52,7 +52,7 @@ export function BalanceView() {
       </h1>
       <p className="lede">Projected year-end position for {year}, from the Budget page{r.sheet ? ` (“${r.sheet}” sheet)` : ""}. Add years on the Budget page.</p>
 
-      <PerspectiveGallery label="Balance sheet totals" className="pg-stats" cardWidth={300} start={1} followPointer minCardHeight={150} items={[
+      <PerspectiveGallery label="Balance sheet totals" className="pg-stats pg-square" cardWidth={260} start={1} followPointer items={[
         { key: "a", label: "Total assets", node: <div className="card tone-green"><span className="label">Total assets</span><div className="stat">{fmt(assets)}</div></div> },
         { key: "l", label: "Total liabilities", node: <div className="card tone-yellow"><span className="label">Total liabilities</span><div className="stat">{fmt(liabilities)}</div></div> },
         { key: "e", label: "Total equity", node: <div className="card tone-lav"><span className="label">Total equity</span><div className={`stat ${equity < 0 ? "neg" : ""}`}>{fmt(equity)}</div>
