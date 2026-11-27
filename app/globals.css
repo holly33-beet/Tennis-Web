@@ -203,6 +203,12 @@ section.locked .notice{animation:none}
 .su-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .su-when{font-weight:700;font-size:16px;margin:4px 0 6px}
 .su-n{margin-top:0}
+.su-total{text-align:right}.su-total .small{margin-top:2px}
+.su-sessions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.su-sess-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.su-slot{font-weight:700;font-size:15px;margin-bottom:6px}
+.su-count{font-weight:800;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.su-sess .su-names{columns:1;margin-top:10px;padding-top:10px}
 .su-names{list-style:none;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--line);columns:2;column-gap:20px;font-size:14px}
 .su-names li{break-inside:avoid;padding:2px 0}
 .su-names label{display:flex;align-items:center;gap:8px;cursor:pointer}

@@ -161,16 +161,30 @@
       (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
       "</div></div>";
     var ticks = getTicks(), wk = String(w.title).trim().toLowerCase();
-    h += '<div class="grid su-grid">' + s.sessions.map(function (x) {
-      return '<div class="card c4 su-card"><div class="su-head"><div><div class="label">' + esc(x.day || "Session") + "</div>" +
-        '<div class="su-when">' + esc(x.when) + "</div>" + (x.kind ? '<span class="tag su-kind">' + esc(x.kind) + "</span>" : "") +
-        '</div><div class="stat su-n">' + x.list.length + "</div></div>" +
-        '<ul class="su-names">' + x.list.map(function (n) {
-          var k = wk + "|" + x.day.toLowerCase() + "|" + x.when.toLowerCase() + "|" + x.kind.toLowerCase() + "|" + n.toLowerCase();
-          var on = !!ticks[k];
-          return '<li' + (on ? ' class="done"' : "") + '><label><input type="checkbox" data-su="tick" data-k="' + esc(k) + '"' + (on ? " checked" : "") +
-            ' aria-label="Cross off ' + esc(n) + '"><span>' + esc(n) + "</span></label></li>";
-        }).join("") + "</ul></div>";
+    // One card per day; each session that day is a section inside it (Holly, 2026-11-27).
+    var days = [], byDay = {};
+    s.sessions.forEach(function (x) {
+      var parts = x.when.split(" · "), date = parts.length > 1 ? parts[0] : "", dk = (x.day + "|" + date).toLowerCase();
+      var d = byDay[dk] || (byDay[dk] = (days.push({ day: x.day, date: date, list: [] }), days[days.length - 1]));
+      d.list.push({ x: x, time: parts.length > 1 ? parts.slice(1).join(" · ") : x.when });
+    });
+    h += '<div class="grid su-grid">' + days.map(function (d) {
+      var ppl = {}; d.list.forEach(function (it) { it.x.list.forEach(function (n) { ppl[n.toLowerCase()] = 1; }); });
+      var nPeople = Object.keys(ppl).length;
+      return '<div class="card c12 su-card"><div class="su-head"><div><div class="label">' + esc(d.day || "Session") + "</div>" +
+        '<div class="su-when">' + esc(d.date) + "</div></div>" +
+        '<div class="su-total"><div class="stat su-n">' + nPeople + '</div><div class="small">' + (nPeople === 1 ? "person" : "people") + " this day</div></div></div>" +
+        '<div class="su-sessions">' + d.list.map(function (it) {
+          var x = it.x;
+          return '<div class="su-sess"><div class="su-sess-head"><div><div class="su-slot">' + esc(it.time) + "</div>" +
+            (x.kind ? '<span class="tag su-kind">' + esc(x.kind) + "</span>" : "") + '</div><div class="su-count">' + x.list.length + "</div></div>" +
+            '<ul class="su-names">' + x.list.map(function (n) {
+              var k = wk + "|" + x.day.toLowerCase() + "|" + x.when.toLowerCase() + "|" + x.kind.toLowerCase() + "|" + n.toLowerCase();
+              var on = !!ticks[k];
+              return '<li' + (on ? ' class="done"' : "") + '><label><input type="checkbox" data-su="tick" data-k="' + esc(k) + '"' + (on ? " checked" : "") +
+                ' aria-label="Cross off ' + esc(n) + '"><span>' + esc(n) + "</span></label></li>";
+            }).join("") + "</ul></div>";
+        }).join("") + "</div></div>";
     }).join("") + "</div>";
     h += '<p class="small su-foot">Live from “' + esc(String(w.title).trim()) + '”. Names only; emails are never shown. Edits made in the sheet show up here on the next refresh.</p>';
     el.innerHTML = h;
