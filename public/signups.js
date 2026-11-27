@@ -19,6 +19,10 @@
   var KEY_STORE = "wtc-signup-key";
   function getKey() { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } }
   function setKey(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch (e) {} }
+  // Cross-off ticks: saved in this browser only (localStorage), per week + session + person.
+  var TICK_STORE = "wtc-signup-ticks-v1";
+  function getTicks() { try { return JSON.parse(localStorage.getItem(TICK_STORE) || "{}") || {}; } catch (e) { return {}; } }
+  function setTick(k, on) { var t = getTicks(); if (on) t[k] = 1; else delete t[k]; try { localStorage.setItem(TICK_STORE, JSON.stringify(t)); } catch (e) {} }
   function isScript(u) { return /script\.google(usercontent)?\.com|\/exec(\?|$)/.test(u); }
 
   function esc(s) {
@@ -156,11 +160,17 @@
       '<div class="card c4' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
       (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
       "</div></div>";
+    var ticks = getTicks(), wk = String(w.title).trim().toLowerCase();
     h += '<div class="grid su-grid">' + s.sessions.map(function (x) {
       return '<div class="card c4 su-card"><div class="su-head"><div><div class="label">' + esc(x.day || "Session") + "</div>" +
         '<div class="su-when">' + esc(x.when) + "</div>" + (x.kind ? '<span class="tag su-kind">' + esc(x.kind) + "</span>" : "") +
         '</div><div class="stat su-n">' + x.list.length + "</div></div>" +
-        '<ol class="su-names">' + x.list.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ol></div>";
+        '<ul class="su-names">' + x.list.map(function (n) {
+          var k = wk + "|" + x.day.toLowerCase() + "|" + x.when.toLowerCase() + "|" + x.kind.toLowerCase() + "|" + n.toLowerCase();
+          var on = !!ticks[k];
+          return '<li' + (on ? ' class="done"' : "") + '><label><input type="checkbox" data-su="tick" data-k="' + esc(k) + '"' + (on ? " checked" : "") +
+            ' aria-label="Cross off ' + esc(n) + '"><span>' + esc(n) + "</span></label></li>";
+        }).join("") + "</ul></div>";
     }).join("") + "</div>";
     h += '<p class="small su-foot">Live from “' + esc(String(w.title).trim()) + '”. Names only; emails are never shown. Edits made in the sheet show up here on the next refresh.</p>';
     el.innerHTML = h;
@@ -210,7 +220,11 @@
       else if (t.dataset.su === "forget") { setKey(""); state.weeks = null; askKey(el, state); }
     });
     el.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.dataset && e.target.dataset.su === "key") { e.preventDefault(); saveKey(); } });
-    el.addEventListener("change", function (e) { if (e.target.dataset && e.target.dataset.su === "week") { state.week = +e.target.value; render(el, state); } });
+    el.addEventListener("change", function (e) {
+      var t = e.target; if (!t.dataset) return;
+      if (t.dataset.su === "week") { state.week = +t.value; render(el, state); }
+      else if (t.dataset.su === "tick") { setTick(t.dataset.k, t.checked); var li = t.closest("li"); if (li) li.classList.toggle("done", t.checked); }
+    });
     if (!state.cfg.url) { render(el, state); return; }
     load(el, state);
   }

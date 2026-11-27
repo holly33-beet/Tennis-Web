@@ -195,16 +195,19 @@ section.locked .notice{animation:none}
 
 /* ---- Progress: live sign-ups (public/signups.js) ---- */
 .su-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
-.su-week{font-weight:800;font-size:20px;color:#fff}
+.su-week{font-weight:800;font-size:32px;color:#fff;line-height:1.1}
 .su-time{color:rgba(255,255,255,.9)}
-.su-pick{color:#fff;font-weight:800;font-size:20px}
+.su-pick{color:#fff;font-weight:800;font-size:32px;line-height:1.1}
 .su-empty p{margin:8px 0 0}
 .su-empty code{font-size:12px;background:var(--line);padding:1px 5px;border-radius:6px}
 .su-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .su-when{font-weight:700;font-size:16px;margin:4px 0 6px}
 .su-n{margin-top:0}
-.su-names{margin:14px 0 0;padding:12px 0 0 20px;border-top:1px solid var(--line);columns:2;column-gap:20px;font-size:14px}
-.su-names li{break-inside:avoid;padding:1px 0}
+.su-names{list-style:none;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--line);columns:2;column-gap:20px;font-size:14px}
+.su-names li{break-inside:avoid;padding:2px 0}
+.su-names label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.su-names input{width:16px;height:16px;margin:0;flex:none;accent-color:var(--ink);cursor:pointer}
+.su-names li.done span{text-decoration:line-through;color:var(--muted)}
 .su-foot{color:rgba(255,255,255,.9)}
 .su-keyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.su-keyrow .inp{flex:1;min-width:180px}
 @media(max-width:520px){.su-names{columns:1}}
