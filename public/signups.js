@@ -23,6 +23,10 @@
   var TICK_STORE = "wtc-signup-ticks-v1";
   function getTicks() { try { return JSON.parse(localStorage.getItem(TICK_STORE) || "{}") || {}; } catch (e) { return {}; } }
   function setTick(k, on) { var t = getTicks(); if (on) t[k] = 1; else delete t[k]; try { localStorage.setItem(TICK_STORE, JSON.stringify(t)); } catch (e) {} }
+  // Which day cards are expanded: remembered in this browser only.
+  var OPEN_STORE = "wtc-signup-open-v1";
+  function getOpen() { try { return JSON.parse(localStorage.getItem(OPEN_STORE) || "{}") || {}; } catch (e) { return {}; } }
+  function setOpen(k, on) { var t = getOpen(); if (on) t[k] = 1; else delete t[k]; try { localStorage.setItem(OPEN_STORE, JSON.stringify(t)); } catch (e) {} }
   function isScript(u) { return /script\.google(usercontent)?\.com|\/exec(\?|$)/.test(u); }
 
   function esc(s) {
@@ -168,12 +172,18 @@
       var d = byDay[dk] || (byDay[dk] = (days.push({ day: x.day, date: date, list: [] }), days[days.length - 1]));
       d.list.push({ x: x, time: parts.length > 1 ? parts.slice(1).join(" · ") : x.when });
     });
+    var opened = getOpen();
     h += '<div class="grid su-grid">' + days.map(function (d) {
       var ppl = {}; d.list.forEach(function (it) { it.x.list.forEach(function (n) { ppl[n.toLowerCase()] = 1; }); });
-      var nPeople = Object.keys(ppl).length;
-      return '<div class="card c12 su-card"><div class="su-head"><div><div class="label">' + esc(d.day || "Session") + "</div>" +
+      var nPeople = Object.keys(ppl).length, ok = wk + "|" + (d.day + "|" + d.date).toLowerCase();
+      // Collapsible day card (Holly, 2026-11-27): the summary row stays visible; click it to show the names.
+      return '<details class="card c3 su-card" data-ok="' + esc(ok) + '"' + (opened[ok] ? " open" : "") + '><summary class="su-sum">' +
+        '<div class="su-head"><div><div class="label">' + esc(d.day || "Session") + "</div>" +
         '<div class="su-when">' + esc(d.date) + "</div></div>" +
-        '<div class="su-total"><div class="stat su-n">' + nPeople + '</div><div class="small">' + (nPeople === 1 ? "person" : "people") + " this day</div></div></div>" +
+        '<div class="su-total"><div class="stat su-n">' + nPeople + '</div><div class="small">' + (nPeople === 1 ? "person" : "people") + "</div></div></div>" +
+        '<ul class="su-mini">' + d.list.map(function (it) {
+          return "<li><span>" + esc(it.time) + (it.x.kind ? " · " + esc(it.x.kind) : "") + "</span><b>" + it.x.list.length + "</b></li>";
+        }).join("") + '</ul><span class="su-chev" aria-hidden="true">▾</span></summary>' +
         '<div class="su-sessions">' + d.list.map(function (it) {
           var x = it.x;
           return '<div class="su-sess"><div class="su-sess-head"><div><div class="su-slot">' + esc(it.time) + "</div>" +
@@ -184,7 +194,7 @@
               return '<li' + (on ? ' class="done"' : "") + '><label><input type="checkbox" data-su="tick" data-k="' + esc(k) + '"' + (on ? " checked" : "") +
                 ' aria-label="Cross off ' + esc(n) + '"><span>' + esc(n) + "</span></label></li>";
             }).join("") + "</ul></div>";
-        }).join("") + "</div></div>";
+        }).join("") + "</div></details>";
     }).join("") + "</div>";
     h += '<p class="small su-foot">Live from “' + esc(String(w.title).trim()) + '”. Names only; emails are never shown. Edits made in the sheet show up here on the next refresh.</p>';
     el.innerHTML = h;
@@ -233,6 +243,7 @@
       else if (t.dataset.su === "savekey") saveKey();
       else if (t.dataset.su === "forget") { setKey(""); state.weeks = null; askKey(el, state); }
     });
+    el.addEventListener("toggle", function (e) { var d = e.target; if (d && d.dataset && d.dataset.ok) setOpen(d.dataset.ok, d.open); }, true);
     el.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.dataset && e.target.dataset.su === "key") { e.preventDefault(); saveKey(); } });
     el.addEventListener("change", function (e) {
       var t = e.target; if (!t.dataset) return;
