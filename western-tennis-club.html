@@ -1134,10 +1134,6 @@ window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-cat
   var TICK_STORE = "wtc-signup-ticks-v1";
   function getTicks() { try { return JSON.parse(localStorage.getItem(TICK_STORE) || "{}") || {}; } catch (e) { return {}; } }
   function setTick(k, on) { var t = getTicks(); if (on) t[k] = 1; else delete t[k]; try { localStorage.setItem(TICK_STORE, JSON.stringify(t)); } catch (e) {} }
-  // Which day cards are expanded: remembered in this browser only.
-  var OPEN_STORE = "wtc-signup-open-v1";
-  function getOpen() { try { return JSON.parse(localStorage.getItem(OPEN_STORE) || "{}") || {}; } catch (e) { return {}; } }
-  function setOpen(k, on) { var t = getOpen(); if (on) t[k] = 1; else delete t[k]; try { localStorage.setItem(OPEN_STORE, JSON.stringify(t)); } catch (e) {} }
   function isScript(u) { return /script\.google(usercontent)?\.com|\/exec(\?|$)/.test(u); }
 
   function esc(s) {
@@ -1268,6 +1264,7 @@ window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-cat
       (weeks.length > 1 ? '<label class="yearpick su-pick"><select data-su="week" aria-label="Week">' + opts + '</select><span class="caret">▾</span></label>' : '<span class="su-week">' + esc(weekLabel(w.title)) + "</span>") +
       '<span class="small su-time">Updated ' + esc(state.fetched.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })) + '</span>' +
       '<button class="btn sm ghost" type="button" data-su="reload">' + (state.loading ? "Refreshing…" : "Refresh") + "</button>" +
+      '<button class="btn sm ghost" type="button" data-su="collapse">Collapse all</button>' +
       (isScript(cfg.url) ? '<button class="btn sm ghost" type="button" data-su="forget">Forget key</button>' : "") + "</div>";
     h += '<div class="grid">' +
       '<div class="card c4"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
@@ -1283,12 +1280,11 @@ window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-cat
       var d = byDay[dk] || (byDay[dk] = (days.push({ day: x.day, date: date, list: [] }), days[days.length - 1]));
       d.list.push({ x: x, time: parts.length > 1 ? parts.slice(1).join(" · ") : x.when });
     });
-    var opened = getOpen();
     h += '<div class="grid su-grid">' + days.map(function (d) {
       var ppl = {}; d.list.forEach(function (it) { it.x.list.forEach(function (n) { ppl[n.toLowerCase()] = 1; }); });
       var nPeople = Object.keys(ppl).length, ok = wk + "|" + (d.day + "|" + d.date).toLowerCase();
-      // Collapsible day card (Holly, 2026-11-27): the summary row stays visible; click it to show the names.
-      return '<details class="card c3 su-card" data-ok="' + esc(ok) + '"' + (opened[ok] ? " open" : "") + '><summary class="su-sum">' +
+      // Collapsible day card (Holly, 2026-11-27): every day starts collapsed; click the summary to show the names.
+      return '<details class="card c3 su-card" data-ok="' + esc(ok) + '"><summary class="su-sum">' +
         '<div class="su-head"><div><div class="label">' + esc(d.day || "Session") + "</div>" +
         '<div class="su-when">' + esc(d.date) + "</div></div>" +
         '<div class="su-total"><div class="stat su-n">' + nPeople + '</div><div class="small">' + (nPeople === 1 ? "person" : "people") + "</div></div></div>" +
@@ -1352,9 +1348,9 @@ window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-cat
       var t = e.target.closest ? e.target.closest("[data-su]") : null; if (!t) return;
       if (t.dataset.su === "reload") load(el, state);
       else if (t.dataset.su === "savekey") saveKey();
+      else if (t.dataset.su === "collapse") el.querySelectorAll("details.su-card[open]").forEach(function (d) { d.open = false; });
       else if (t.dataset.su === "forget") { setKey(""); state.weeks = null; askKey(el, state); }
     });
-    el.addEventListener("toggle", function (e) { var d = e.target; if (d && d.dataset && d.dataset.ok) setOpen(d.dataset.ok, d.open); }, true);
     el.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.dataset && e.target.dataset.su === "key") { e.preventDefault(); saveKey(); } });
     el.addEventListener("change", function (e) {
       var t = e.target; if (!t.dataset) return;
