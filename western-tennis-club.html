@@ -218,6 +218,8 @@ section.locked .notice{animation:none}
 .su-when{font-weight:700;font-size:16px;margin:4px 0 6px}
 .su-n{margin-top:0}
 .su-total{text-align:right}.su-total .small{margin-top:2px}
+.su-top{padding:16px 20px}.su-top .stat{font-size:26px;margin-top:4px}
+.su-card .su-total .stat{font-size:52px;line-height:1}
 .su-grid{align-items:start}
 .su-sum{list-style:none;cursor:pointer;position:relative}.su-sum::-webkit-details-marker{display:none}
 .su-mini{list-style:none;margin:12px 0 0;padding:10px 0 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
@@ -1267,9 +1269,9 @@ window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-cat
       '<button class="btn sm ghost" type="button" data-su="collapse">Collapse all</button>' +
       (isScript(cfg.url) ? '<button class="btn sm ghost" type="button" data-su="forget">Forget key</button>' : "") + "</div>";
     h += '<div class="grid">' +
-      '<div class="card c4"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
-      '<div class="card c4"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
-      '<div class="card c4' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
+      '<div class="card c4 su-top"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
+      '<div class="card c4 su-top"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
+      '<div class="card c4 su-top' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
       (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
       "</div></div>";
     var ticks = getTicks(), wk = String(w.title).trim().toLowerCase();

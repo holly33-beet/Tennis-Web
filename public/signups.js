@@ -156,9 +156,9 @@
       '<button class="btn sm ghost" type="button" data-su="collapse">Collapse all</button>' +
       (isScript(cfg.url) ? '<button class="btn sm ghost" type="button" data-su="forget">Forget key</button>' : "") + "</div>";
     h += '<div class="grid">' +
-      '<div class="card c4"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
-      '<div class="card c4"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
-      '<div class="card c4' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
+      '<div class="card c4 su-top"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
+      '<div class="card c4 su-top"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
+      '<div class="card c4 su-top' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
       (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
       "</div></div>";
     var ticks = getTicks(), wk = String(w.title).trim().toLowerCase();

@@ -204,6 +204,8 @@ section.locked .notice{animation:none}
 .su-when{font-weight:700;font-size:16px;margin:4px 0 6px}
 .su-n{margin-top:0}
 .su-total{text-align:right}.su-total .small{margin-top:2px}
+.su-top{padding:16px 20px}.su-top .stat{font-size:26px;margin-top:4px}
+.su-card .su-total .stat{font-size:52px;line-height:1}
 .su-grid{align-items:start}
 .su-sum{list-style:none;cursor:pointer;position:relative}.su-sum::-webkit-details-marker{display:none}
 .su-mini{list-style:none;margin:12px 0 0;padding:10px 0 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
