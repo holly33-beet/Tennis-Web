@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { PerspectiveGallery } from "@/components/ui/perspective-gallery";
 import { SHEET_YEARS, fmt, longDate } from "@/lib/budget";
 
 // Budget page with a year picker. 2025–26 and 2026–27 come from their tabs of the budget sheet (read-only copies).
@@ -333,71 +334,104 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
 
   return (
     <>
-      <div className="grid">
-        <div className="card c3 tone-cream"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div>
-        <div className="card c3 tone-green"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div>
-        <div className="card c3 tone-yellow"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div>
-        <div className="card c3 tone-lav"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div>
-      </div>
+      <PerspectiveGallery label="Budget totals" className="pg-stats" cardWidth={300} start={1} followPointer items={[
+          { key: "s0", label: "Total cost", node: <div className="card tone-cream"><span className="label">Total cost</span><div className="stat">{fmt(t.cost)}</div></div> },
+          { key: "s1", label: "Total revenue", node: <div className="card tone-green"><span className="label">Total revenue</span><div className="stat">{fmt(t.revenue)}</div></div> },
+          { key: "s2", label: "Carryover", node: <div className="card tone-yellow"><span className="label">Carryover</span><div className="stat">{fmt(t.carryover)}</div></div> },
+          { key: "s3", label: "Surplus or deficit", node: <div className="card tone-lav"><span className="label">Surplus or deficit</span><div className={`stat ${t.surplus < 0 ? "neg" : ""}`}>{fmt(t.surplus)}</div><p className="small">Carryover to next year: {fmt(ending)}</p></div> },
+      ]} />
 
-      {/* Revenue side */}
-      <div className="grid">
-        <div className="card c3 mini">
-          <span className="label">Membership revenue</span>
-          <div className="stat">{fmt(memRev)}</div>
-          <p className="small">{mem.n} × {fmt(mem.price)} · not counted in Total revenue yet</p>
-          <div className="fields">
-            <Field label="Member number"><Num value={mem.n} onChange={(n) => setMem((m) => ({ ...m, n: Math.round(n) }))} label="Member number" /></Field>
-            <Field label="WTC membership price"><Num value={mem.price} onChange={(n) => setMem((m) => ({ ...m, price: n }))} label="WTC membership price" step="0.01" prefix="$" /></Field>
-          </div>
-        </div>
-      </div>
-
-      {/* Cost calculators: four compact cards; the court calendar opens below */}
-      <div className="grid">
-        <div className="card c3 mini">
-          <span className="label">Court fees</span>
-          <div className="stat">{fmt(k.court)}</div>
-          <p className="small">{calc.dates.length} sessions · {weekHours} court-hours a week{k.extras.length > 0 && ` · plus ${fmt(k.extras.reduce((a, e) => a + e.amount, 0))} extra bookings`}</p>
-          <div className="fields">
-            <Field label="Price per court-hour"><Num value={calc.rate} onChange={(n) => upd({ rate: n })} label="Price per court-hour" step="0.01" prefix="$" /></Field>
-          </div>
-          <button className="linkbtn" onClick={() => setCourtOpen((o) => !o)} aria-expanded={courtOpen}>{courtOpen ? "Hide sessions ▴" : "Edit days and sessions ▾"}</button>
-        </div>
-        <div className="card c3 mini">
-          <span className="label">Balls</span>
-          <div className="stat">{fmt(k.balls)}</div>
-          <p className="small">{k.ballsTotal > 0 ? "Typed total" : k.ballsEntered ? `${calc.balls.qty} boxes × ${fmt(calc.balls.price)}` : sh ? "Sheet amount. Enter boxes × price, or type a total." : "Enter boxes × price, or type a total."}</p>
-          <div className="fields">
-            <Field label="Boxes bought"><Num disabled={k.ballsTotal > 0} value={calc.balls.qty} onChange={(n) => upd({ balls: { ...calc.balls, qty: Math.round(n) } })} label="Boxes bought" /></Field>
-            <Field label="Price per box"><Num disabled={k.ballsTotal > 0} value={calc.balls.price} onChange={(n) => upd({ balls: { ...calc.balls, price: n } })} label="Price per box" step="0.01" prefix="$" /></Field>
-            <Field label="Or total amount"><Num disabled={k.ballsBoxes} value={calc.balls.total ?? 0} onChange={(n) => upd({ balls: { ...calc.balls, total: n } })} label="Balls total amount" step="0.01" prefix="$" /></Field>
-          </div>
-          {(k.ballsTotal > 0 || k.ballsBoxes) && <p className="small">{k.ballsTotal > 0 ? "Using the total. Clear it to use boxes × price." : "Using boxes × price. Clear both to type a total."}</p>}
-        </div>
-        <div className="card c3 mini">
-          <span className="label">Administrative fee</span>
-          <div className="stat">{fmt(k.admin)}</div>
-          <p className="small">{calc.admin.fullN} × {fmt(calc.admin.fullFee)} + {calc.admin.winterN} × {fmt(calc.admin.winterFee)}</p>
-          <div className="fields">
-            <Field label="Full-year fee"><Num value={calc.admin.fullFee} onChange={(n) => upd({ admin: { ...calc.admin, fullFee: n } })} label="Full-year fee per member" step="0.01" prefix="$" /></Field>
-            <Field label="Full-year members"><Num value={calc.admin.fullN} onChange={(n) => upd({ admin: { ...calc.admin, fullN: Math.round(n) } })} label="Full-year members" /></Field>
-            <Field label="Winter fee"><Num value={calc.admin.winterFee} onChange={(n) => upd({ admin: { ...calc.admin, winterFee: n } })} label="Winter fee per member" step="0.01" prefix="$" /></Field>
-            <Field label="Winter members"><Num value={calc.admin.winterN} onChange={(n) => upd({ admin: { ...calc.admin, winterN: Math.round(n) } })} label="Winter members" /></Field>
-          </div>
-          {sheetAdmin !== undefined && Math.abs(sheetAdmin - k.admin) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetAdmin)}.</p>}
-        </div>
-        <div className="card c3 mini">
-          <span className="label">UTC membership</span>
-          <div className="stat">{fmt(k.utc)}</div>
-          <p className="small">{calc.utc.n} × {fmt(calc.utc.fee)}</p>
-          <div className="fields">
-            <Field label="Price per person"><Num value={calc.utc.fee} onChange={(n) => upd({ utc: { ...calc.utc, fee: n } })} label="UTC price per person" step="0.01" prefix="$" /></Field>
-            <Field label="Members"><Num value={calc.utc.n} onChange={(n) => upd({ utc: { ...calc.utc, n: Math.round(n) } })} label="UTC members" /></Field>
-          </div>
-          {sheetUtc !== undefined && Math.abs(sheetUtc - k.utc) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetUtc)}.</p>}
-        </div>
-      </div>
+      {/* Membership revenue and the cost calculators; the court calendar opens below */}
+      <PerspectiveGallery label="Budget calculators" className="pg-calc" cardWidth={300} start={1} items={[
+          { key: "c0", label: "Membership revenue", node: (
+            <div className="card mini">
+              <span className="label">Membership revenue</span>
+              <div className="stat">{fmt(memRev)}</div>
+              <p className="small">{mem.n} × {fmt(mem.price)} · not counted in Total revenue yet</p>
+              <div className="fields">
+                <Field label="Member number"><Num value={mem.n} onChange={(n) => setMem((m) => ({ ...m, n: Math.round(n) }))} label="Member number" /></Field>
+                <Field label="WTC membership price"><Num value={mem.price} onChange={(n) => setMem((m) => ({ ...m, price: n }))} label="WTC membership price" step="0.01" prefix="$" /></Field>
+              </div>
+            </div>
+          ) },
+          { key: "c1", label: "Court fees", node: (
+            <div className="card mini">
+              <span className="label">Court fees</span>
+              <div className="stat">{fmt(k.court)}</div>
+              <p className="small">{calc.dates.length} sessions · {weekHours} court-hours a week{k.extras.length > 0 && ` · plus ${fmt(k.extras.reduce((a, e) => a + e.amount, 0))} extra bookings`}</p>
+              <div className="fields">
+                <Field label="Price per court-hour"><Num value={calc.rate} onChange={(n) => upd({ rate: n })} label="Price per court-hour" step="0.01" prefix="$" /></Field>
+              </div>
+              <button className="linkbtn" onClick={() => setCourtOpen((o) => !o)} aria-expanded={courtOpen}>{courtOpen ? "Hide sessions ▴" : "Edit days and sessions ▾"}</button>
+            </div>
+          ) },
+          { key: "c2", label: "Balls", node: (
+            <div className="card mini">
+              <span className="label">Balls</span>
+              <div className="stat">{fmt(k.balls)}</div>
+              <p className="small">{k.ballsTotal > 0 ? "Typed total" : k.ballsEntered ? `${calc.balls.qty} boxes × ${fmt(calc.balls.price)}` : sh ? "Sheet amount. Enter boxes × price, or type a total." : "Enter boxes × price, or type a total."}</p>
+              <div className="fields">
+                <Field label="Boxes bought"><Num disabled={k.ballsTotal > 0} value={calc.balls.qty} onChange={(n) => upd({ balls: { ...calc.balls, qty: Math.round(n) } })} label="Boxes bought" /></Field>
+                <Field label="Price per box"><Num disabled={k.ballsTotal > 0} value={calc.balls.price} onChange={(n) => upd({ balls: { ...calc.balls, price: n } })} label="Price per box" step="0.01" prefix="$" /></Field>
+                <Field label="Or total amount"><Num disabled={k.ballsBoxes} value={calc.balls.total ?? 0} onChange={(n) => upd({ balls: { ...calc.balls, total: n } })} label="Balls total amount" step="0.01" prefix="$" /></Field>
+              </div>
+              {(k.ballsTotal > 0 || k.ballsBoxes) && <p className="small">{k.ballsTotal > 0 ? "Using the total. Clear it to use boxes × price." : "Using boxes × price. Clear both to type a total."}</p>}
+            </div>
+          ) },
+          { key: "c3", label: "Administrative fee", node: (
+            <div className="card mini">
+              <span className="label">Administrative fee</span>
+              <div className="stat">{fmt(k.admin)}</div>
+              <p className="small">{calc.admin.fullN} × {fmt(calc.admin.fullFee)} + {calc.admin.winterN} × {fmt(calc.admin.winterFee)}</p>
+              <div className="fields">
+                <Field label="Full-year fee"><Num value={calc.admin.fullFee} onChange={(n) => upd({ admin: { ...calc.admin, fullFee: n } })} label="Full-year fee per member" step="0.01" prefix="$" /></Field>
+                <Field label="Full-year members"><Num value={calc.admin.fullN} onChange={(n) => upd({ admin: { ...calc.admin, fullN: Math.round(n) } })} label="Full-year members" /></Field>
+                <Field label="Winter fee"><Num value={calc.admin.winterFee} onChange={(n) => upd({ admin: { ...calc.admin, winterFee: n } })} label="Winter fee per member" step="0.01" prefix="$" /></Field>
+                <Field label="Winter members"><Num value={calc.admin.winterN} onChange={(n) => upd({ admin: { ...calc.admin, winterN: Math.round(n) } })} label="Winter members" /></Field>
+              </div>
+              {sheetAdmin !== undefined && Math.abs(sheetAdmin - k.admin) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetAdmin)}.</p>}
+            </div>
+          ) },
+          { key: "c4", label: "UTC membership", node: (
+            <div className="card mini">
+              <span className="label">UTC membership</span>
+              <div className="stat">{fmt(k.utc)}</div>
+              <p className="small">{calc.utc.n} × {fmt(calc.utc.fee)}</p>
+              <div className="fields">
+                <Field label="Price per person"><Num value={calc.utc.fee} onChange={(n) => upd({ utc: { ...calc.utc, fee: n } })} label="UTC price per person" step="0.01" prefix="$" /></Field>
+                <Field label="Members"><Num value={calc.utc.n} onChange={(n) => upd({ utc: { ...calc.utc, n: Math.round(n) } })} label="UTC members" /></Field>
+              </div>
+              {sheetUtc !== undefined && Math.abs(sheetUtc - k.utc) > 0.005 && <p className="small err-t">The sheet shows {fmt(sheetUtc)}.</p>}
+            </div>
+          ) },
+          ...(hasEvents ? [{ key: "c5", label: "Event budget", node: (
+            <div className="card mini evcard">
+              <span className="label">Event budget</span>
+              <div className={`stat ${remaining < 0 ? "neg" : ""}`}>{fmt(remaining)}</div>
+              <p className="small">left of {fmt(store.start)}</p>
+              <div className="bar"><i style={{ width: `${pct}%`, background: remaining < 0 ? "var(--red)" : undefined }} /></div>
+              <label className="small" style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 14px" }}>
+                Starting budget $
+                <input className="inp" type="number" min="0" step="1" value={store.start} onChange={(e) => setStore((s) => ({ ...s, start: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 110 }} />
+              </label>
+              <div className="evform" onKeyDown={(e) => { if (e.key === "Enter") addEvent(); }}>
+                <input className="inp" placeholder="Event name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Event name" />
+                <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Event date" />
+                <input className="inp" type="number" min="0" step="0.01" placeholder="Cost $" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Event cost" />
+                <button className="btn" type="button" onClick={addEvent}>Add event</button>
+              </div>
+              {store.events.length === 0 ? <p className="small" style={{ marginTop: 12 }}>No events yet. Each event you add comes off the event budget.</p> : (
+                <table style={{ marginTop: 12 }}><tbody>
+                  {store.events.map((e) => (
+                    <tr key={e.id}><td>{e.name}{e.date && <div className="small">{longDate(e.date)}</div>}{e.note && <div className="small">{e.note}</div>}</td><td className="n">−{fmt(e.amount)}</td>
+                      <td className="n" style={{ width: 28 }}><button className="x" onClick={() => remove(e.id)} aria-label={`Remove ${e.name}`}>×</button></td></tr>
+                  ))}
+                </tbody></table>
+              )}
+              <p className="small" style={{ marginTop: 10 }}>Saved in this browser only.</p>
+            </div>
+          ) }] : []),
+      ]} />
       {courtOpen && (
         <div className="grid">
           <div className="card c12">
@@ -447,7 +481,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
       <div className="calcfoot"><span className="small">Calculator inputs save in this browser.</span> <button className="linkbtn" style={{ marginTop: 0 }} onClick={resetCalc}>{sh ? "Reset to sheet numbers" : "Clear calculators"}</button></div>
 
       <div className="grid">
-        <div className={`card ${hasEvents ? "c7" : "c12"}`}>
+        <div className="card c12">
           <h2>Budget breakdown</h2>
           {sh && <p className="small" style={{ margin: "-4px 0 8px" }}>From the “{sh.source}” sheet, with the calculators above.</p>}
           <div className="scroll"><table><tbody>
@@ -474,31 +508,6 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
           </tbody></table></div>
         </div>
 
-        {hasEvents && <div className="card c5">
-          <span className="label">Event budget</span>
-          <div className={`stat ${remaining < 0 ? "neg" : ""}`}>{fmt(remaining)}</div>
-          <p className="small">left of {fmt(store.start)}</p>
-          <div className="bar"><i style={{ width: `${pct}%`, background: remaining < 0 ? "var(--red)" : undefined }} /></div>
-          <label className="small" style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 14px" }}>
-            Starting budget $
-            <input className="inp" type="number" min="0" step="1" value={store.start} onChange={(e) => setStore((s) => ({ ...s, start: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 110 }} />
-          </label>
-          <div className="evform" onKeyDown={(e) => { if (e.key === "Enter") addEvent(); }}>
-            <input className="inp" placeholder="Event name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Event name" />
-            <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Event date" />
-            <input className="inp" type="number" min="0" step="0.01" placeholder="Cost $" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Event cost" />
-            <button className="btn" type="button" onClick={addEvent}>Add event</button>
-          </div>
-          {store.events.length === 0 ? <p className="small" style={{ marginTop: 12 }}>No events yet. Each event you add comes off the event budget.</p> : (
-            <table style={{ marginTop: 12 }}><tbody>
-              {store.events.map((e) => (
-                <tr key={e.id}><td>{e.name}{e.date && <div className="small">{longDate(e.date)}</div>}{e.note && <div className="small">{e.note}</div>}</td><td className="n">−{fmt(e.amount)}</td>
-                  <td className="n" style={{ width: 28 }}><button className="x" onClick={() => remove(e.id)} aria-label={`Remove ${e.name}`}>×</button></td></tr>
-              ))}
-            </tbody></table>
-          )}
-          <p className="small" style={{ marginTop: 10 }}>Saved in this browser only.</p>
-        </div>}
       </div>
     </>
   );
