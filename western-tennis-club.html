@@ -205,6 +205,8 @@ section.locked .notice{animation:none}
 .fin .card.mini{background:var(--fin-card);box-shadow:0 10px 30px rgba(10,30,70,.12)}
 .fin .yearpick select,.fin .yearbar{font-family:var(--font-body)}
 .fin .inp::placeholder{color:#6B675E}
+.fin .inp,.fin .card select{color:var(--fin-ink);color-scheme:light}
+.fin .field,.fin .numwrap,.fin .evform,.fin .daytbl{color:var(--fin-ink)}
 </style></head>
 <body><div class="wrap">
 <nav><a class="logo" href="#home"><span class="dot"></span>Western Tennis Club</a><ul><li><a href="#home" data-tab="home">Home</a></li><li><a href="#budget" data-tab="budget">Budget</a></li><li><a href="#balance" data-tab="balance">Balance sheet</a></li><li><a href="#progress" data-tab="progress">Progress</a></li><li id="logout-li" hidden><button class="logout" id="logout" type="button">Log out</button></li></ul></nav>
@@ -230,9 +232,9 @@ section.locked .notice{animation:none}
 
 <!-- ================= CHECKING PROGRESS (exec) ================= -->
 <section class="page" id="progress" data-exec><div class="notice"><span class="dot" style="margin-top:6px"></span><div><b>Exec only.</b> Club finances, for the executive team. Please don’t share this page outside the exec.</div></div>
-<!-- Progress = sign-up tracking (Holly, 2026-11-26). Content cleared until the sign-up data source is decided. -->
-<h1>Progress.</h1><p class="lede">Sign-up tracking. Coming soon.</p>
-<div class="card ph" style="min-height:220px;display:grid;place-items:center;text-align:center"><p class="small">Nothing here yet.</p></div>
+<!-- Progress = sign-up tracking (Holly, 2026-11-26). Reads the Google Form responses live on load (script: signups.js, inlined below). -->
+<h1>Progress.</h1><p class="lede">Session sign-ups, read from the Google Form every time this page opens.</p>
+<div id="signups-root"></div>
 </section>
 
 <footer>Western Tennis Club · Figures copied from the club budget sheet on Nov 26, 2026. Not live.</footer>
@@ -1070,5 +1072,213 @@ react/cjs/react-jsx-runtime.production.js:
   if (document.body) build(); else addEventListener("DOMContentLoaded", build);
 })();
 
+</script>
+<script>
+// ===== SIGN-UPS: where the Progress page reads the Google Form responses from. See SIGNUPS-SETUP.md. =====
+// Leave url "" until a link is approved. Option A: Apps Script web app URL (.../exec) + token. Option B: published CSV link, token "".
+window.WTC_SIGNUPS = { url: "", token: "" };
+</script>
+<script>
+/* Western Tennis Club: live session sign-ups (Progress page).
+ * Reads the Google Form responses on page load, in the browser. Nothing is stored on a server,
+ * and nobody types data in. Same file is used by the Next.js site (public/signups.js) and pasted
+ * inline into western-tennis-club.html. Keep the two copies identical.
+ *
+ * Config (set by the page as window.WTC_SIGNUPS or passed to mount):
+ *   url   : the data link. Either
+ *           - the Apps Script web app URL (recommended; returns names + sessions only, all weeks), or
+ *           - a "Publish to web" CSV link of the responses tab (…/pub?gid=…&single=true&output=csv).
+ *   token : the secret the Apps Script checks. Leave "" for a CSV link.
+ * Email addresses are never shown, even when the CSV contains them.
+ */
+(function () {
+  "use strict";
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
+  var LIMIT = 2; // the form's rule: max 2 hours a week
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // RFC 4180 CSV parser (handles quoted commas, quotes and line breaks).
+  function parseCSV(text) {
+    var rows = [], row = [], f = "", q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+        else f += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(f); f = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(f); rows.push(row); row = []; f = "";
+      } else f += c;
+    }
+    if (f !== "" || row.length) { row.push(f); rows.push(row); }
+    return rows;
+  }
+
+  // Turn a sheet (array of rows, first row = headers) into [{name, sessions, time}].
+  function rowsFromTable(table) {
+    if (!table.length) return [];
+    var head = table[0].map(function (h) { return String(h).toLowerCase(); });
+    var iName = head.findIndex(function (h) { return h.indexOf("name") > -1 && h.indexOf("email") < 0; });
+    var iSess = head.findIndex(function (h) { return h.indexOf("session") > -1 && h.indexOf("understand") < 0; });
+    var iTime = head.findIndex(function (h) { return h.indexOf("timestamp") > -1; });
+    if (iName < 0 || iSess < 0) throw new Error("Could not find the name and session columns in the sheet.");
+    return table.slice(1).map(function (r) {
+      return { name: r[iName] || "", sessions: r[iSess] || "", time: iTime > -1 ? r[iTime] || "" : "" };
+    });
+  }
+
+  // "Wednesday, Nov. 4th, 9:00-10:00 PM - Beginner Clinic, Sunday, Nov. 8th, ..." -> separate sessions.
+  // Commas also appear inside each option, so split only before a weekday name.
+  function splitSessions(s) {
+    var re = new RegExp(",\\s*(?=(?:" + DAYS.join("|") + ")\\b)", "i");
+    return String(s).split(re).map(function (x) { return x.trim().replace(/,\s*$/, ""); }).filter(Boolean);
+  }
+
+  // Normalise spacing/dashes so "PM- Open Play" and "PM  - Open Play" count as the same session.
+  function parseSession(raw) {
+    var t = raw.replace(/\s+/g, " ").trim();
+    var m = t.match(/^(\w+),\s*([A-Za-z]+)\.?\s*(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{1,2}(?::\d{2})?)\s*-\s*(\d{1,2}(?::\d{2})?)\s*(AM|PM)?\s*-?\s*(.*)$/i);
+    if (!m) return { key: t.toLowerCase(), day: "", when: t, kind: "", sort: 9e15 };
+    var mon = MONTHS[m[2].toLowerCase().slice(0, 4)] ?? MONTHS[m[2].toLowerCase().slice(0, 3)];
+    var ap = (m[6] || "PM").toUpperCase();
+    var h = parseInt(m[4], 10) % 12 + (ap === "PM" ? 12 : 0);
+    var day = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
+    var kind = m[7].trim().replace(/^[-–\s]+/, "");
+    var when = m[2].replace(/\.$/, "") + " " + parseInt(m[3], 10) + " · " + m[4] + "–" + m[5] + " " + ap;
+    var sort = (mon == null ? 99 : mon) * 1e6 + parseInt(m[3], 10) * 1e4 + h * 100;
+    return { key: (day + "|" + when + "|" + kind).toLowerCase(), day: day, when: when, kind: kind, sort: sort };
+  }
+
+  function normName(n) { return n.replace(/\s+/g, " ").trim(); }
+
+  function summarise(rows) {
+    var sessions = {}, people = {};
+    rows.forEach(function (r) {
+      var name = normName(r.name);
+      if (!name || !String(r.sessions).trim()) return;
+      var pk = name.toLowerCase();
+      var p = people[pk] || (people[pk] = { name: name, keys: {} });
+      splitSessions(r.sessions).forEach(function (raw) {
+        var s = parseSession(raw);
+        var slot = sessions[s.key] || (sessions[s.key] = { day: s.day, when: s.when, kind: s.kind, sort: s.sort, names: {} });
+        slot.names[pk] = name;
+        p.keys[s.key] = 1;
+      });
+    });
+    var list = Object.keys(sessions).map(function (k) {
+      var s = sessions[k];
+      s.list = Object.keys(s.names).map(function (n) { return s.names[n]; }).sort(function (a, b) { return a.localeCompare(b); });
+      return s;
+    }).sort(function (a, b) { return a.sort - b.sort || a.kind.localeCompare(b.kind); });
+    var ppl = Object.keys(people).map(function (k) { return { name: people[k].name, n: Object.keys(people[k].keys).length }; });
+    return {
+      sessions: list,
+      people: ppl.length,
+      spots: list.reduce(function (t, s) { return t + s.list.length; }, 0),
+      over: ppl.filter(function (p) { return p.n > LIMIT; }).sort(function (a, b) { return b.n - a.n; })
+    };
+  }
+
+  function weekLabel(title) {
+    var m = String(title).match(/week\s*(\d+)/i);
+    return m ? "Week " + m[1] : String(title).replace(/\(responses\)/i, "").trim();
+  }
+
+  function setupCard() {
+    return '<div class="card ph su-empty"><div class="label">Not connected yet</div>' +
+      '<p>This page fills itself from the Google Form responses once a data link is added. ' +
+      'Add the link in <code>lib/signups-config.ts</code> (Next.js site) or in the <code>WTC_SIGNUPS</code> block (single HTML file). ' +
+      'Steps are in <code>SIGNUPS-SETUP.md</code>.</p></div>';
+  }
+
+  function render(el, state) {
+    var cfg = state.cfg;
+    if (!cfg || !cfg.url) { el.innerHTML = setupCard(); return; }
+    if (state.loading && !state.weeks) { el.innerHTML = '<div class="card su-empty"><p class="small">Loading sign-ups from the Google Form…</p></div>'; return; }
+    if (state.error) {
+      el.innerHTML = '<div class="card su-empty"><div class="label">Could not load sign-ups</div><p>' + esc(state.error) +
+        '</p><button class="btn sm" type="button" data-su="reload">Try again</button></div>';
+      return;
+    }
+    var weeks = state.weeks || [];
+    if (!weeks.length) { el.innerHTML = '<div class="card su-empty"><p class="small">No sign-up sheets found.</p></div>'; return; }
+    var wi = Math.min(state.week, weeks.length - 1);
+    var w = weeks[wi], s = summarise(w.rows);
+    var opts = weeks.map(function (x, i) { return '<option value="' + i + '"' + (i === wi ? " selected" : "") + ">" + esc(weekLabel(x.title)) + "</option>"; }).join("");
+    var h = '<div class="su-bar">' +
+      (weeks.length > 1 ? '<label class="yearpick su-pick"><select data-su="week" aria-label="Week">' + opts + '</select><span class="caret">▾</span></label>' : '<span class="su-week">' + esc(weekLabel(w.title)) + "</span>") +
+      '<span class="small su-time">Updated ' + esc(state.fetched.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })) + '</span>' +
+      '<button class="btn sm ghost" type="button" data-su="reload">' + (state.loading ? "Refreshing…" : "Refresh") + "</button></div>";
+    h += '<div class="grid">' +
+      '<div class="card c4"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
+      '<div class="card c4"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
+      '<div class="card c4' + (s.over.length ? " cream" : "") + '"><div class="label">Over the ' + LIMIT + '-hour limit</div><div class="stat">' + s.over.length + "</div>" +
+      (s.over.length ? '<div class="small">' + s.over.map(function (p) { return esc(p.name) + " (" + p.n + ")"; }).join(", ") + "</div>" : '<div class="small">Nobody</div>') +
+      "</div></div>";
+    h += '<div class="grid su-grid">' + s.sessions.map(function (x) {
+      return '<div class="card c4 su-card"><div class="su-head"><div><div class="label">' + esc(x.day || "Session") + "</div>" +
+        '<div class="su-when">' + esc(x.when) + "</div>" + (x.kind ? '<span class="tag su-kind">' + esc(x.kind) + "</span>" : "") +
+        '</div><div class="stat su-n">' + x.list.length + "</div></div>" +
+        '<ol class="su-names">' + x.list.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ol></div>";
+    }).join("") + "</div>";
+    h += '<p class="small su-foot">Live from “' + esc(String(w.title).trim()) + '”. Names only; emails are never shown. Edits made in the sheet show up here on the next refresh.</p>';
+    el.innerHTML = h;
+  }
+
+  function load(el, state) {
+    state.loading = true; state.error = ""; render(el, state);
+    var u = state.cfg.url;
+    if (state.cfg.token) u += (u.indexOf("?") > -1 ? "&" : "?") + "token=" + encodeURIComponent(state.cfg.token);
+    u += (u.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now(); // skip browser cache
+    fetch(u, { redirect: "follow" }).then(function (r) {
+      if (!r.ok) throw new Error("Google answered " + r.status + ". Check the link in the config.");
+      return r.text();
+    }).then(function (text) {
+      var t = text.trim(), weeks;
+      if (t[0] === "{") {
+        var j = JSON.parse(t);
+        if (j.error) throw new Error(j.error === "unauthorized" ? "The token does not match the one in the Apps Script." : j.error);
+        weeks = j.weeks || [];
+      } else if (t[0] === "<") {
+        throw new Error("Got a web page instead of data. The sheet is probably not published, or the Apps Script is not deployed for “Anyone”.");
+      } else {
+        weeks = [{ title: state.cfg.title || "Sign-ups", rows: rowsFromTable(parseCSV(t)) }];
+      }
+      var first = !state.weeks;
+      state.weeks = weeks; state.fetched = new Date();
+      if (first) state.week = weeks.length - 1; // open on the newest week
+    }).catch(function (e) {
+      state.error = (e && e.message) || "Network error.";
+    }).then(function () { state.loading = false; render(el, state); });
+  }
+
+  function mount(el, cfg) {
+    if (!el) return;
+    if (el.__su) { el.__su.cfg = cfg; load(el, el.__su); return; }
+    var state = el.__su = { cfg: cfg || {}, week: 0, weeks: null, loading: false, error: "", fetched: new Date() };
+    el.addEventListener("click", function (e) { if (e.target.closest && e.target.closest('[data-su="reload"]')) load(el, state); });
+    el.addEventListener("change", function (e) { if (e.target.dataset && e.target.dataset.su === "week") { state.week = +e.target.value; render(el, state); } });
+    if (!state.cfg.url) { render(el, state); return; }
+    load(el, state);
+  }
+
+  window.WTCSignups = { mount: mount, _summarise: summarise, _parseCSV: parseCSV, _rowsFromTable: rowsFromTable };
+})();
+
+</script>
+<script>
+// Load sign-ups the first time the Progress page is open and unlocked.
+(function(){var done=false;function tick(){var sec=document.getElementById("progress");
+  if(done||!sec||!sec.classList.contains("show")||!isExec())return;done=true;
+  window.WTCSignups.mount(document.getElementById("signups-root"),window.WTC_SIGNUPS);}
+  window.addEventListener("hashchange",tick);setInterval(tick,600);tick();})();
 </script>
 </body></html>

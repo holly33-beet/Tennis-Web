@@ -190,3 +190,5 @@ section.locked .notice{animation:none}
 .fin .card.mini{background:var(--fin-card);box-shadow:0 10px 30px rgba(10,30,70,.12)}
 .fin .yearpick select,.fin .yearbar{font-family:var(--font-body)}
 .fin .inp::placeholder{color:#6B675E}
+.fin .inp,.fin .card select{color:var(--fin-ink);color-scheme:light}
+.fin .field,.fin .numwrap,.fin .evform,.fin .daytbl{color:var(--fin-ink)}
