@@ -11,7 +11,7 @@ export type Custom = { revenue: number; carryover: number };
 // The four calculators. Weekday index 0 = Sunday … 6 = Saturday.
 type Calc = {
   rate: number; courts: number[]; hours: number[]; dates: string[];
-  balls: { qty: number; price: number };
+  balls: { qty: number; price: number; total?: number }; // boxes × price OR a typed total, never both
   admin: { fullFee: number; fullN: number; winterFee: number; winterN: number };
   utc: { fee: number; n: number };
 };
@@ -59,12 +59,14 @@ export function calcTotals(y: string, k: Calc) {
   });
   const extras = sh?.courtExtras ?? [];
   const court = r2(perDay.reduce((a, d) => a + d.total, 0) + extras.reduce((a, e) => a + e.amount, 0));
-  const ballsEntered = k.balls.qty > 0 && k.balls.price > 0;
+  const ballsTotal = k.balls.total ?? 0;
+  const ballsBoxes = k.balls.qty > 0 || k.balls.price > 0; // either box field filled locks the total field
+  const ballsEntered = ballsTotal > 0 || (k.balls.qty > 0 && k.balls.price > 0);
   const sheetBalls = sh?.expenses.find((e) => e.name === "Balls")?.amount ?? 0;
-  const balls = ballsEntered ? r2(k.balls.qty * k.balls.price) : sheetBalls;
+  const balls = ballsTotal > 0 ? r2(ballsTotal) : ballsEntered ? r2(k.balls.qty * k.balls.price) : sheetBalls;
   const admin = r2(k.admin.fullFee * k.admin.fullN + k.admin.winterFee * k.admin.winterN);
   const utc = r2(k.utc.fee * k.utc.n);
-  return { perDay, extras, court, balls, ballsEntered, admin, utc };
+  return { perDay, extras, court, balls, ballsEntered, ballsTotal, ballsBoxes, admin, utc };
 }
 
 export function read<T>(key: string, fallback: T): T {
@@ -175,12 +177,12 @@ export function BudgetView() {
   );
 }
 
-function Num({ value, onChange, label, step = "1", width = 90, prefix }: { value: number; onChange: (n: number) => void; label: string; step?: string; width?: number; prefix?: string }) {
+function Num({ value, onChange, label, step = "1", width = 90, prefix, disabled }: { value: number; onChange: (n: number) => void; label: string; step?: string; width?: number; prefix?: string; disabled?: boolean }) {
   const [txt, setTxt] = React.useState(value ? String(value) : "");
   React.useEffect(() => { if ((parseFloat(txt) || 0) !== value) setTxt(value ? String(value) : ""); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <span className="numwrap">{prefix && <i>{prefix}</i>}
-      <input className="inp num" type="number" step={step} min="0" placeholder="0" aria-label={label} value={txt} style={{ width }}
+      <input className="inp num" type="number" step={step} min="0" placeholder="0" aria-label={label} value={txt} style={{ width }} disabled={disabled}
         onChange={(e) => { setTxt(e.target.value); onChange(Math.max(0, parseFloat(e.target.value) || 0)); }} />
     </span>
   );
@@ -359,11 +361,13 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
         <div className="card c3 mini">
           <span className="label">Balls</span>
           <div className="stat">{fmt(k.balls)}</div>
-          <p className="small">{k.ballsEntered ? `${calc.balls.qty} boxes × ${fmt(calc.balls.price)}` : sh ? "Sheet amount. Enter boxes and price to work it out." : "Enter boxes and price."}</p>
+          <p className="small">{k.ballsTotal > 0 ? "Typed total" : k.ballsEntered ? `${calc.balls.qty} boxes × ${fmt(calc.balls.price)}` : sh ? "Sheet amount. Enter boxes × price, or type a total." : "Enter boxes × price, or type a total."}</p>
           <div className="fields">
-            <Field label="Boxes bought"><Num value={calc.balls.qty} onChange={(n) => upd({ balls: { ...calc.balls, qty: Math.round(n) } })} label="Boxes bought" /></Field>
-            <Field label="Price per box"><Num value={calc.balls.price} onChange={(n) => upd({ balls: { ...calc.balls, price: n } })} label="Price per box" step="0.01" prefix="$" /></Field>
+            <Field label="Boxes bought"><Num disabled={k.ballsTotal > 0} value={calc.balls.qty} onChange={(n) => upd({ balls: { ...calc.balls, qty: Math.round(n) } })} label="Boxes bought" /></Field>
+            <Field label="Price per box"><Num disabled={k.ballsTotal > 0} value={calc.balls.price} onChange={(n) => upd({ balls: { ...calc.balls, price: n } })} label="Price per box" step="0.01" prefix="$" /></Field>
+            <Field label="Or total amount"><Num disabled={k.ballsBoxes} value={calc.balls.total ?? 0} onChange={(n) => upd({ balls: { ...calc.balls, total: n } })} label="Balls total amount" step="0.01" prefix="$" /></Field>
           </div>
+          {(k.ballsTotal > 0 || k.ballsBoxes) && <p className="small">{k.ballsTotal > 0 ? "Using the total. Clear it to use boxes × price." : "Using boxes × price. Clear both to type a total."}</p>}
         </div>
         <div className="card c3 mini">
           <span className="label">Administrative fee</span>

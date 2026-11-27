@@ -225,3 +225,4 @@ details[open] .su-chev{transform:rotate(180deg)}
 .su-foot{color:rgba(255,255,255,.9)}
 .su-keyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.su-keyrow .inp{flex:1;min-width:180px}
 @media(max-width:520px){.su-names{columns:1}}
+.fin .inp:disabled{background:#ECE8DF;color:#9A958A;cursor:not-allowed}
