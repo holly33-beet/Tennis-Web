@@ -226,3 +226,5 @@ details[open] .su-chev{transform:rotate(180deg)}
 .su-keyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.su-keyrow .inp{flex:1;min-width:180px}
 @media(max-width:520px){.su-names{columns:1}}
 .fin .inp:disabled{background:#ECE8DF;color:#9A958A;cursor:not-allowed}
+.datelock{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.lockstate{font-weight:600;font-size:14px}
+.cal.locked .cal-d{cursor:not-allowed}.cal.locked .cal-d:not(.on):hover{background:#EFEADF}.cal.locked{opacity:.85}

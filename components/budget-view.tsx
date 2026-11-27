@@ -202,7 +202,7 @@ const allWeekday = (y0: number, w: number) => seasonMonths(y0).flatMap(({ y, m }
 
 // Click a date to add or remove it. With a mouse you can also press and drag across dates to
 // select (or clear) several at once.
-function Calendar({ y0, dates, courts, setDay }: { y0: number; dates: Set<string>; courts: number[]; setDay: (d: string, on: boolean) => void }) {
+function Calendar({ y0, dates, courts, setDay, locked }: { y0: number; dates: Set<string>; courts: number[]; setDay: (d: string, on: boolean) => void; locked?: boolean }) {
   const drag = React.useRef<{ on: boolean; seen: Set<string> } | null>(null);
   React.useEffect(() => {
     const end = () => { drag.current = null; };
@@ -210,17 +210,18 @@ function Calendar({ y0, dates, courts, setDay }: { y0: number; dates: Set<string
     return () => { window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
   }, []);
   const down = (e: React.PointerEvent, d: string) => {
+    if (locked) return;
     const on = !dates.has(d);
     setDay(d, on);
     if (e.pointerType !== "touch") { drag.current = { on, seen: new Set([d]) }; e.preventDefault(); }
   };
   const enter = (d: string) => {
     const g = drag.current;
-    if (!g || g.seen.has(d)) return;
+    if (locked || !g || g.seen.has(d)) return;
     g.seen.add(d); setDay(d, g.on);
   };
   return (
-    <div className="cal">
+    <div className={`cal${locked ? " locked" : ""}`} title={locked ? "Dates are locked" : undefined}>
       {seasonMonths(y0).map(({ y, m }) => {
         const first = new Date(y, m, 1).getDay();
         const n = new Date(y, m + 1, 0).getDate();
@@ -236,7 +237,8 @@ function Calendar({ y0, dates, courts, setDay }: { y0: number; dates: Set<string
                 const w = wd(d);
                 return <button type="button" key={d} className={`cal-d${on ? " on" : ""}${on && !courts[w] ? " warn" : ""}`}
                   onPointerDown={(e) => down(e, d)} onPointerEnter={() => enter(d)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDay(d, !on); } }}
+                  onKeyDown={(e) => { if (locked) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDay(d, !on); } }}
+                  aria-disabled={locked || undefined}
                   aria-pressed={on} aria-label={`${longDate(d)}${on ? ", session" : ""}`}>{i + 1}</button>;
               })}
             </div>
@@ -271,6 +273,10 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
   const [mem, setMem] = useStored<MemRev>(memKey(year), defaultMem(year));
   const memRev = r2(mem.n * mem.price);
   const [courtOpen, setCourtOpen] = React.useState(false);
+  // Lock on the session dates so a stray click on the calendar can't change them. Unlocking takes two clicks.
+  const [locked, setLocked] = useStored<boolean>(`wtc-courtlock-v1:${year}`, false);
+  const [unlockAsk, setUnlockAsk] = React.useState(false);
+  React.useEffect(() => { if (!unlockAsk) return; const t = setTimeout(() => setUnlockAsk(false), 4000); return () => clearTimeout(t); }, [unlockAsk]);
   const [name, setName] = React.useState("");
   const [date, setDate] = React.useState("");
   const [amount, setAmount] = React.useState("");
@@ -402,7 +408,7 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
                 {rows.map((i) => (
                   <tr key={i}>
                     <td>{WEEKDAYS[i]}s<div className="small">{fmt(k.perDay[i].each)} a session</div>
-                      <div className="dayacts"><button className="linkbtn" onClick={() => everyWeek(i)}>Every week</button><button className="linkbtn" onClick={() => clearDay(i)}>Clear</button></div></td>
+                      {!locked && <div className="dayacts"><button className="linkbtn" onClick={() => everyWeek(i)}>Every week</button><button className="linkbtn" onClick={() => clearDay(i)}>Clear</button></div>}</td>
                     <td className="n"><Num value={calc.courts[i]} onChange={(n) => setArr("courts", i, Math.round(n))} label={`${WEEKDAYS[i]} courts`} width={58} /></td>
                     <td className="n"><Num value={calc.hours[i]} onChange={(n) => setArr("hours", i, n)} label={`${WEEKDAYS[i]} hours per session`} step="0.5" width={58} /></td>
                     <td className="n">{k.perDay[i].n}</td>
@@ -412,7 +418,17 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
                 {k.extras.map((e) => <tr key={e.name}><td colSpan={4}>{e.name}{e.note && <div className="small">{e.note}</div>}</td><td className="n">{fmt(e.amount)}</td></tr>)}
                 <tr className="total"><td>Total</td><td /><td /><td className="n">{calc.dates.length}</td><td className="n">{fmt(k.court)}</td></tr>
               </tbody></table></div>
-              {hidden.length > 0 && (
+              <div className="datelock">
+                {locked ? (
+                  <>
+                    <span className="lockstate">🔒 Dates locked</span>
+                    <button type="button" className="linkbtn" onClick={() => { if (unlockAsk) { setLocked(false); setUnlockAsk(false); } else setUnlockAsk(true); }}>{unlockAsk ? "Click again to unlock" : "Unlock"}</button>
+                  </>
+                ) : (
+                  <button type="button" className="btn sm" onClick={() => setLocked(true)}>🔒 Lock dates</button>
+                )}
+              </div>
+              {!locked && hidden.length > 0 && (
                 <div className="addday">
                   <select className="inp" value="" onChange={(e) => { const i = +e.target.value; setExtraDay((x) => [...x, i]); }} aria-label="Add a day">
                     <option value="" disabled>+ Add a day</option>
@@ -420,10 +436,10 @@ function YearBody({ year, custom, setCustom }: { year: string; custom: Record<st
                   </select>
                 </div>
               )}
-              <p className="small" style={{ marginTop: 10 }}>Click dates to add them (blue) or click again to remove. You can also drag across several dates at once. “Every week” fills in that day for the whole season (Sep to Apr); then click off holidays and reading weeks.</p>
+              {locked ? <p className="small" style={{ marginTop: 10 }}>The calendar is locked, so clicks on it do nothing. Unlock to change the dates.</p> : <p className="small" style={{ marginTop: 10 }}>Click dates to add them (blue) or click again to remove. You can also drag across several dates at once. “Every week” fills in that day for the whole season (Sep to Apr); then click off holidays and reading weeks. Lock the dates when you are done.</p>}
               {calc.dates.some((d) => !calc.courts[wd(d)]) && <p className="small err-t">Red dates have no courts set for that day, so they cost $0.</p>}
             </div>
-            <Calendar y0={y0} dates={dateSet} courts={calc.courts} setDay={setDay} />
+            <Calendar y0={y0} dates={dateSet} courts={calc.courts} setDay={setDay} locked={locked} />
           </div>
           </div>
         </div>
