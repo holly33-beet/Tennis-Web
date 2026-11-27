@@ -207,6 +207,21 @@ section.locked .notice{animation:none}
 .fin .inp::placeholder{color:#6B675E}
 .fin .inp,.fin .card select{color:var(--fin-ink);color-scheme:light}
 .fin .field,.fin .numwrap,.fin .evform,.fin .daytbl{color:var(--fin-ink)}
+/* ---- Progress: live sign-ups (public/signups.js) ---- */
+.su-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+.su-week{font-weight:800;font-size:20px;color:#fff}
+.su-time{color:rgba(255,255,255,.9)}
+.su-pick{color:#fff;font-weight:800;font-size:20px}
+.su-empty p{margin:8px 0 0}
+.su-empty code{font-size:12px;background:var(--line);padding:1px 5px;border-radius:6px}
+.su-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.su-when{font-weight:700;font-size:16px;margin:4px 0 6px}
+.su-n{margin-top:0}
+.su-names{margin:14px 0 0;padding:12px 0 0 20px;border-top:1px solid var(--line);columns:2;column-gap:20px;font-size:14px}
+.su-names li{break-inside:avoid;padding:1px 0}
+.su-foot{color:rgba(255,255,255,.9)}
+.su-keyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.su-keyrow .inp{flex:1;min-width:180px}
+@media(max-width:520px){.su-names{columns:1}}
 </style></head>
 <body><div class="wrap">
 <nav><a class="logo" href="#home"><span class="dot"></span>Western Tennis Club</a><ul><li><a href="#home" data-tab="home">Home</a></li><li><a href="#budget" data-tab="budget">Budget</a></li><li><a href="#balance" data-tab="balance">Balance sheet</a></li><li><a href="#progress" data-tab="progress">Progress</a></li><li id="logout-li" hidden><button class="logout" id="logout" type="button">Log out</button></li></ul></nav>
@@ -1075,8 +1090,8 @@ react/cjs/react-jsx-runtime.production.js:
 </script>
 <script>
 // ===== SIGN-UPS: where the Progress page reads the Google Form responses from. See SIGNUPS-SETUP.md. =====
-// Leave url "" until a link is approved. Option A: Apps Script web app URL (.../exec) + token. Option B: published CSV link, token "".
-window.WTC_SIGNUPS = { url: "", token: "" };
+// Paste the Apps Script web app URL (ends in /exec). The sign-up key is NOT stored here: each exec types it on the page.
+window.WTC_SIGNUPS = { url: "https://script.google.com/macros/s/AKfycbxWhnAv-catu6ZNHEw4Vd144hyNDjooMTfz-nmO81iUkJvKXMNM2A5p36lGamAcBGB0cQ/exec" };
 </script>
 <script>
 /* Western Tennis Club: live session sign-ups (Progress page).
@@ -1088,7 +1103,8 @@ window.WTC_SIGNUPS = { url: "", token: "" };
  *   url   : the data link. Either
  *           - the Apps Script web app URL (recommended; returns names + sessions only, all weeks), or
  *           - a "Publish to web" CSV link of the responses tab (…/pub?gid=…&single=true&output=csv).
- *   token : the secret the Apps Script checks. Leave "" for a CSV link.
+ *   The sign-up key (the secret the Apps Script checks) is NOT in the config or the page source.
+ *   Each exec types it once on the Progress page; it is kept only in that browser (localStorage).
  * Email addresses are never shown, even when the CSV contains them.
  */
 (function () {
@@ -1096,6 +1112,10 @@ window.WTC_SIGNUPS = { url: "", token: "" };
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
   var LIMIT = 2; // the form's rule: max 2 hours a week
+  var KEY_STORE = "wtc-signup-key";
+  function getKey() { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } }
+  function setKey(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch (e) {} }
+  function isScript(u) { return /script\.google(usercontent)?\.com|\/exec(\?|$)/.test(u); }
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -1195,13 +1215,21 @@ window.WTC_SIGNUPS = { url: "", token: "" };
   function setupCard() {
     return '<div class="card ph su-empty"><div class="label">Not connected yet</div>' +
       '<p>This page fills itself from the Google Form responses once a data link is added. ' +
-      'Add the link in <code>lib/signups-config.ts</code> (Next.js site) or in the <code>WTC_SIGNUPS</code> block (single HTML file). ' +
+      'Add the Apps Script link in <code>lib/signups-config.ts</code> (Next.js site) or in the <code>WTC_SIGNUPS</code> block (single HTML file). ' +
       'Steps are in <code>SIGNUPS-SETUP.md</code>.</p></div>';
   }
 
   function render(el, state) {
     var cfg = state.cfg;
     if (!cfg || !cfg.url) { el.innerHTML = setupCard(); return; }
+    if (state.needKey) {
+      el.innerHTML = '<div class="card su-empty su-key"><div class="label">Sign-up key</div>' +
+        '<p>Enter the sign-up key to load the live sign-ups. Ask Holly for it. It is saved in this browser only, never in the site’s code.</p>' +
+        '<div class="su-keyrow"><input class="inp" type="password" autocomplete="off" placeholder="Sign-up key" aria-label="Sign-up key" data-su="key">' +
+        '<button class="btn sm" type="button" data-su="savekey">Load sign-ups</button></div>' +
+        (state.keyError ? '<p class="err-t">' + esc(state.keyError) + "</p>" : "") + "</div>";
+      return;
+    }
     if (state.loading && !state.weeks) { el.innerHTML = '<div class="card su-empty"><p class="small">Loading sign-ups from the Google Form…</p></div>'; return; }
     if (state.error) {
       el.innerHTML = '<div class="card su-empty"><div class="label">Could not load sign-ups</div><p>' + esc(state.error) +
@@ -1216,7 +1244,8 @@ window.WTC_SIGNUPS = { url: "", token: "" };
     var h = '<div class="su-bar">' +
       (weeks.length > 1 ? '<label class="yearpick su-pick"><select data-su="week" aria-label="Week">' + opts + '</select><span class="caret">▾</span></label>' : '<span class="su-week">' + esc(weekLabel(w.title)) + "</span>") +
       '<span class="small su-time">Updated ' + esc(state.fetched.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })) + '</span>' +
-      '<button class="btn sm ghost" type="button" data-su="reload">' + (state.loading ? "Refreshing…" : "Refresh") + "</button></div>";
+      '<button class="btn sm ghost" type="button" data-su="reload">' + (state.loading ? "Refreshing…" : "Refresh") + "</button>" +
+      (isScript(cfg.url) ? '<button class="btn sm ghost" type="button" data-su="forget">Forget key</button>' : "") + "</div>";
     h += '<div class="grid">' +
       '<div class="card c4"><div class="label">People signed up</div><div class="stat">' + s.people + "</div></div>" +
       '<div class="card c4"><div class="label">Spots booked</div><div class="stat">' + s.spots + '</div><div class="small">across ' + s.sessions.length + " sessions</div></div>" +
@@ -1233,10 +1262,13 @@ window.WTC_SIGNUPS = { url: "", token: "" };
     el.innerHTML = h;
   }
 
+  function askKey(el, state, msg) { state.needKey = true; state.keyError = msg || ""; state.loading = false; render(el, state); }
+
   function load(el, state) {
-    state.loading = true; state.error = ""; render(el, state);
-    var u = state.cfg.url;
-    if (state.cfg.token) u += (u.indexOf("?") > -1 ? "&" : "?") + "token=" + encodeURIComponent(state.cfg.token);
+    var u = state.cfg.url, key = getKey();
+    if (isScript(u) && !key) { askKey(el, state); return; }
+    state.needKey = false; state.loading = true; state.error = ""; render(el, state);
+    if (key && isScript(u)) u += (u.indexOf("?") > -1 ? "&" : "?") + "token=" + encodeURIComponent(key);
     u += (u.indexOf("?") > -1 ? "&" : "?") + "_=" + Date.now(); // skip browser cache
     fetch(u, { redirect: "follow" }).then(function (r) {
       if (!r.ok) throw new Error("Google answered " + r.status + ". Check the link in the config.");
@@ -1245,7 +1277,8 @@ window.WTC_SIGNUPS = { url: "", token: "" };
       var t = text.trim(), weeks;
       if (t[0] === "{") {
         var j = JSON.parse(t);
-        if (j.error) throw new Error(j.error === "unauthorized" ? "The token does not match the one in the Apps Script." : j.error);
+        if (j.error === "unauthorized") { setKey(""); var bad = new Error("That key is not right."); bad.badKey = true; throw bad; }
+        if (j.error) throw new Error(j.error);
         weeks = j.weeks || [];
       } else if (t[0] === "<") {
         throw new Error("Got a web page instead of data. The sheet is probably not published, or the Apps Script is not deployed for “Anyone”.");
@@ -1256,15 +1289,23 @@ window.WTC_SIGNUPS = { url: "", token: "" };
       state.weeks = weeks; state.fetched = new Date();
       if (first) state.week = weeks.length - 1; // open on the newest week
     }).catch(function (e) {
+      if (e && e.badKey) { state.weeks = null; askKey(el, state, e.message); return; }
       state.error = (e && e.message) || "Network error.";
-    }).then(function () { state.loading = false; render(el, state); });
+    }).then(function () { if (!state.needKey) { state.loading = false; render(el, state); } });
   }
 
   function mount(el, cfg) {
     if (!el) return;
     if (el.__su) { el.__su.cfg = cfg; load(el, el.__su); return; }
-    var state = el.__su = { cfg: cfg || {}, week: 0, weeks: null, loading: false, error: "", fetched: new Date() };
-    el.addEventListener("click", function (e) { if (e.target.closest && e.target.closest('[data-su="reload"]')) load(el, state); });
+    var state = el.__su = { cfg: cfg || {}, week: 0, weeks: null, loading: false, error: "", fetched: new Date(), needKey: false, keyError: "" };
+    var saveKey = function () { var i = el.querySelector('[data-su="key"]'); var k = i ? i.value.trim() : ""; if (!k) return; setKey(k); load(el, state); };
+    el.addEventListener("click", function (e) {
+      var t = e.target.closest ? e.target.closest("[data-su]") : null; if (!t) return;
+      if (t.dataset.su === "reload") load(el, state);
+      else if (t.dataset.su === "savekey") saveKey();
+      else if (t.dataset.su === "forget") { setKey(""); state.weeks = null; askKey(el, state); }
+    });
+    el.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.dataset && e.target.dataset.su === "key") { e.preventDefault(); saveKey(); } });
     el.addEventListener("change", function (e) { if (e.target.dataset && e.target.dataset.su === "week") { state.week = +e.target.value; render(el, state); } });
     if (!state.cfg.url) { render(el, state); return; }
     load(el, state);

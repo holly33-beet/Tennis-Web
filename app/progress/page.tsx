@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import { ExecGate, ExecNotice } from "@/components/exec-gate";
+import { SignupsView } from "@/components/signups-view";
 
 export const metadata: Metadata = { title: "Progress · WTC" };
 
-// Progress = sign-up tracking (Holly, 2026-11-26). Content cleared until the sign-up data source is decided.
+// Progress = sign-up tracking (Holly, 2026-11-26). Reads the Google Form responses live on load
+// via the Apps Script in signups-apps-script.gs. See SIGNUPS-SETUP.md.
 export default function Progress() {
   return (
     <ExecGate>
       <main>
         <ExecNotice />
         <h1>Progress.</h1>
-        <p className="lede">Sign-up tracking. Coming soon.</p>
-        <div className="card ph" style={{ minHeight: 220, display: "grid", placeItems: "center", textAlign: "center" }}>
-          <p className="small">Nothing here yet.</p>
-        </div>
+        <p className="lede">Session sign-ups, read from the Google Form every time this page opens.</p>
+        <SignupsView />
       </main>
     </ExecGate>
   );

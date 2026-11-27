@@ -24,3 +24,10 @@ Two versions of the same site:
 ## Notes
 - Edits people make on the site (calculators, events, balance sheet items) save in their own browser only.
 - Headings use Playfair Display as a free stand-in for Balennia (paid font).
+
+## Live sign-ups (Progress page)
+The Progress page reads the Google Form responses on load through an Apps Script web app
+(`signups-apps-script.gs`). Code: `public/signups.js` (also inlined in `western-tennis-club.html`),
+`components/signups-view.tsx`, config `lib/signups-config.ts` (URL only). The sign-up key is never
+in this repo: it lives in the script's Script Properties, and each exec types it on the page once.
+Setup steps: `SIGNUPS-SETUP.md`.
