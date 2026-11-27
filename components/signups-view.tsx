@@ -2,6 +2,7 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { SIGNUPS } from "@/lib/signups-config";
+import { BASE } from "@/lib/base-path";
 
 type Mount = (el: HTMLElement, cfg: typeof SIGNUPS) => void;
 
@@ -18,7 +19,7 @@ export function SignupsView() {
   }, [ready]);
   return (
     <>
-      <Script src="/signups.js" strategy="afterInteractive" onReady={() => setReady(true)} />
+      <Script src={`${BASE}/signups.js`} strategy="afterInteractive" onReady={() => setReady(true)} />
       <div ref={ref} className="su-root" />
     </>
   );

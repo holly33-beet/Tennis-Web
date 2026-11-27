@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BASE } from "@/lib/base-path";
 
 const links = [
   ["/", "Home"],
@@ -18,7 +19,7 @@ export function Nav() {
     check(); window.addEventListener("wtc-exec", check);
     return () => window.removeEventListener("wtc-exec", check);
   }, [path]);
-  const logout = () => { try { sessionStorage.removeItem("wtc-exec"); } catch {} window.location.href = "/"; };
+  const logout = () => { try { sessionStorage.removeItem("wtc-exec"); } catch {} window.location.href = `${BASE}/`; };
   return (
     <nav>
       <Link className="logo" href="/"><span className="dot" />Western Tennis Club</Link>

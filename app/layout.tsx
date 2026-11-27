@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
 import Script from "next/script";
 import { Nav } from "@/components/nav";
+import { BASE } from "@/lib/base-path";
 import "./globals.css";
 
 const interTight = Inter_Tight({ subsets: ["latin"], weight: ["400", "500", "700", "800"], variable: "--font-inter-tight" });
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={interTight.variable}>
+    <html lang="en" className={interTight.variable} style={{ ["--court-bg" as string]: `url("${BASE}/court-bg.jpg")` }}>
       <head>
         {/* Fonts offered in the typography editor */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -28,9 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <footer>Western Tennis Club · Figures copied from the club budget sheet on Nov 26, 2026. Not live.</footer>
         </div>
         {/* Water ripple on the home background (only runs while body has .home-bg) */}
-        <Script src="/ripple.js" strategy="afterInteractive" />
+        <Script src={`${BASE}/ripple.js`} strategy="afterInteractive" />
         {/* Typography editor: floating Aa button */}
-        <Script src="/type-editor.js" strategy="afterInteractive" />
+        <Script src={`${BASE}/type-editor.js`} strategy="afterInteractive" />
       </body>
     </html>
   );
