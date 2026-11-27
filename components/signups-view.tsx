@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { SIGNUPS } from "@/lib/signups-config";
 import { BASE } from "@/lib/base-path";
 
+// Changes on every deploy so browsers fetch the new signups.js instead of a cached copy.
+const BUILD = process.env.NEXT_PUBLIC_BUILD_ID || "dev";
+
 type Mount = (el: HTMLElement, cfg: typeof SIGNUPS) => void;
 
 // Live sign-ups from the Google Form. Rendering lives in public/signups.js so the
@@ -19,7 +22,7 @@ export function SignupsView() {
   }, [ready]);
   return (
     <>
-      <Script src={`${BASE}/signups.js`} strategy="afterInteractive" onReady={() => setReady(true)} />
+      <Script src={`${BASE}/signups.js?v=${BUILD}`} strategy="afterInteractive" onReady={() => setReady(true)} />
       <div ref={ref} className="su-root" />
     </>
   );
