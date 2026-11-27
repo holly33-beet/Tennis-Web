@@ -11,7 +11,7 @@ const art = (colors: string[], angle: number): ArtRecipe => ({ style: "streak", 
 const FOLDERS: { key: PageKey; label: string; art: ArtRecipe; seed: number; sheets: string[] }[] = [
   { key: "budget", label: "Budget", art: art(["#FAF2E0", "#9DBBD8", "#0E61AC", "#0A4A85", "#FAF2E0"], -0.6), seed: 3, sheets: ["Breakdown", "Court fees", "Event budget"] }, // 沧溟蓝 / 玉釉杏
   { key: "balance", label: "Balance sheet", art: art(["#FBF1D7", "#B8D39A", "#73AE52", "#4F8A36", "#FBF1D7"], 0.4), seed: 7, sheets: ["Assets", "Liabilities", "Equity"] }, // 青岚色 / 云腴色
-  { key: "progress", label: "Progress", art: art(["#79BEDF", "#B9D8C8", "#F4DC84", "#E9C65A", "#79BEDF"], -0.3), seed: 11, sheets: ["Sign-ups"] }, // 缃云黄 / 晴川蓝
+  { key: "progress", label: "Sign up", art: art(["#79BEDF", "#B9D8C8", "#F4DC84", "#E9C65A", "#79BEDF"], -0.3), seed: 11, sheets: ["Sign-ups"] }, // 缃云黄 / 晴川蓝
 ];
 
 function useWidth() {

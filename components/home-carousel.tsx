@@ -23,7 +23,7 @@ export type PageKey = "budget" | "balance" | "progress";
 export const PAGES: { key: PageKey; name: string; card: WarpCard }[] = [
   { key: "budget", name: "Budget", card: card("Budget", "#0E61AC", "#FAF2E0", "#0E61AC") }, // 沧溟蓝 → 玉釉杏
   { key: "balance", name: "Balance sheet", card: card("Balance\nsheet", "#73AE52", "#FBF1D7", "#5E9442") }, // 青岚色 → 云腴色
-  { key: "progress", name: "Progress", card: card("Progress", "#F4DC84", "#79BEDF", "#ffffff") }, // 缃云黄 → 晴川蓝
+  { key: "progress", name: "Sign up", card: card("Sign up", "#F4DC84", "#79BEDF", "#ffffff") }, // 缃云黄 → 晴川蓝
 ];
 const cards = PAGES.map((p) => p.card);
 
